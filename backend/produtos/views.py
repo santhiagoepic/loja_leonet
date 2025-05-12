@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from .models import Categoria, Produto, Banner, Contato
 from .serializers import CategoriaSerializer, ProdutoSerializer, BannerSerializer, ContatoSerializer
 from rest_framework.views import APIView
-
+from collections import defaultdict
 # ViewSet para Produto (com CRUD completo + ação de destaque)
 class ProdutoViewSet(viewsets.ModelViewSet):
     queryset = Produto.objects.all()
@@ -70,9 +70,22 @@ class ProdutosFemininaView(APIView):
         categoria = Categoria.objects.filter(slug='feminina').first()
         if not categoria:
             return Response({"detail": "Categoria Feminina não encontrada."}, status=404)
-        produtos = Produto.objects.filter(categoria=categoria)
-        serializer = ProdutoSerializer(produtos, many=True)
-        return Response(serializer.data)
+        
+        produtos = Produto.objects.filter(categoria=categoria).select_related('tipo')
+        produtos_por_tipo = defaultdict(list)
+
+        for produto in produtos:
+            produtos_por_tipo[produto.tipo.nome].append(produto)
+
+        response_data = []
+        for tipo_nome, produtos in produtos_por_tipo.items():
+            serializer = ProdutoSerializer(produtos, many=True)
+            response_data.append({
+                'tipo': tipo_nome,
+                'produtos': serializer.data
+            })
+
+        return Response(response_data)
 
 class ProdutosMasculinaView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -81,9 +94,22 @@ class ProdutosMasculinaView(APIView):
         categoria = Categoria.objects.filter(slug='masculina').first()
         if not categoria:
             return Response({"detail": "Categoria Masculina não encontrada."}, status=404)
-        produtos = Produto.objects.filter(categoria=categoria)
-        serializer = ProdutoSerializer(produtos, many=True)
-        return Response(serializer.data)
+        
+        produtos = Produto.objects.filter(categoria=categoria).select_related('tipo')
+        produtos_por_tipo = defaultdict(list)
+
+        for produto in produtos:
+            produtos_por_tipo[produto.tipo.nome].append(produto)
+
+        response_data = []
+        for tipo_nome, produtos in produtos_por_tipo.items():
+            serializer = ProdutoSerializer(produtos, many=True)
+            response_data.append({
+                'tipo': tipo_nome,
+                'produtos': serializer.data
+            })
+
+        return Response(response_data)
 
 class ProdutosInfantilView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -92,9 +118,22 @@ class ProdutosInfantilView(APIView):
         categoria = Categoria.objects.filter(slug='infantil').first()
         if not categoria:
             return Response({"detail": "Categoria Infantil não encontrada."}, status=404)
-        produtos = Produto.objects.filter(categoria=categoria)
-        serializer = ProdutoSerializer(produtos, many=True)
-        return Response(serializer.data)
+        
+        produtos = Produto.objects.filter(categoria=categoria).select_related('tipo')
+        produtos_por_tipo = defaultdict(list)
+
+        for produto in produtos:
+            produtos_por_tipo[produto.tipo.nome].append(produto)
+
+        response_data = []
+        for tipo_nome, produtos in produtos_por_tipo.items():
+            serializer = ProdutoSerializer(produtos, many=True)
+            response_data.append({
+                'tipo': tipo_nome,
+                'produtos': serializer.data
+            })
+
+        return Response(response_data)
 
 class ProdutosAcessoriosView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -103,6 +142,20 @@ class ProdutosAcessoriosView(APIView):
         categoria = Categoria.objects.filter(slug='acessorios').first()
         if not categoria:
             return Response({"detail": "Categoria Acessórios não encontrada."}, status=404)
-        produtos = Produto.objects.filter(categoria=categoria)
-        serializer = ProdutoSerializer(produtos, many=True)
-        return Response(serializer.data)
+        
+        produtos = Produto.objects.filter(categoria=categoria).select_related('tipo')
+        produtos_por_tipo = defaultdict(list)
+
+        for produto in produtos:
+            produtos_por_tipo[produto.tipo.nome].append(produto)
+
+        response_data = []
+        for tipo_nome, produtos in produtos_por_tipo.items():
+            serializer = ProdutoSerializer(produtos, many=True)
+            response_data.append({
+                'tipo': tipo_nome,
+                'produtos': serializer.data
+            })
+
+        return Response(response_data)
+    

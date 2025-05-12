@@ -29,8 +29,9 @@ SECRET_KEY = 'django-insecure-v@9f*lb4=78s!6gm1%!s&$@5oxwt6&3ko_%lt20(pqi_=mfn9^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = []
 
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Application definition
 
@@ -45,6 +46,7 @@ INSTALLED_APPS = [
     'cloudinary',
     'cloudinary_storage',
     'produtos',
+    # 'corsheaders',
     'rest_framework.authtoken',
 ]
 
