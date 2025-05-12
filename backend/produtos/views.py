@@ -5,6 +5,8 @@ from .models import Categoria, Produto, Banner, Contato
 from .serializers import CategoriaSerializer, ProdutoSerializer, BannerSerializer, ContatoSerializer
 from rest_framework.views import APIView
 from collections import defaultdict
+
+
 # ViewSet para Produto (com CRUD completo + ação de destaque)
 class ProdutoViewSet(viewsets.ModelViewSet):
     queryset = Produto.objects.all()
@@ -48,7 +50,6 @@ class ContatoDetail(generics.RetrieveAPIView):
         return Contato.objects.first()
 
 # View para a Home (retorna destaques, banners e categorias principais)
-
 class HomeView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -63,6 +64,7 @@ class HomeView(APIView):
             'categorias': CategoriaSerializer(categorias, many=True).data,
         })
 
+#FUNÇÃO PARA PÁGINA FEMININA(RETORNA APENAS A CATEGORIA FEMININA SEPARADA POR ITENS)
 class ProdutosFemininaView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -87,6 +89,7 @@ class ProdutosFemininaView(APIView):
 
         return Response(response_data)
 
+#FUNÇÃO PARA PÁGINA MASCULINA(RETORNA APENAS A CATEGORIA FEMININA SEPARADA POR ITENS)
 class ProdutosMasculinaView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -111,6 +114,7 @@ class ProdutosMasculinaView(APIView):
 
         return Response(response_data)
 
+#FUNÇÃO PARA PÁGINA INFANTIL(RETORNA APENAS A CATEGORIA FEMININA SEPARADA POR ITENS)
 class ProdutosInfantilView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -135,6 +139,7 @@ class ProdutosInfantilView(APIView):
 
         return Response(response_data)
 
+#FUNÇÃO PARA PÁGINA DE ASSESSORIOS(RETORNA APENAS A CATEGORIA FEMININA SEPARADA POR ITENS)
 class ProdutosAcessoriosView(APIView):
     permission_classes = [permissions.AllowAny]
 
