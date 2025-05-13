@@ -22,7 +22,7 @@ class ProdutoViewSet(viewsets.ModelViewSet):
     def destaques(self, request):
         destaques = Produto.objects.filter(em_destaque=True)
         serializer = self.get_serializer(destaques, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 # ViewSet para Categoria
 class CategoriaViewSet(viewsets.ReadOnlyModelViewSet):
@@ -34,13 +34,18 @@ class CategoriaViewSet(viewsets.ReadOnlyModelViewSet):
         categoria = self.get_object()
         produtos = categoria.produtos.all()
         serializer = ProdutoSerializer(produtos, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
 # View para banners ativos
 class BannerList(generics.ListAPIView):
     queryset = Banner.objects.filter(ativo=True)
     serializer_class = BannerSerializer
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)  # Status explícito
+    
 # View para informações de contato (assumindo apenas 1 registro)
 class ContatoDetail(generics.RetrieveAPIView):
     queryset = Contato.objects.all()
@@ -61,8 +66,8 @@ class HomeView(APIView):
         return Response({
             'destaques': ProdutoSerializer(destaques, many=True).data,
             'banners': BannerSerializer(banners, many=True).data,
-            'categorias': CategoriaSerializer(categorias, many=True).data,
-        })
+            'categorias': CategoriaSerializer(categorias, many=True).data, 
+        }, status=status.HTTP_200_OK)
 
 #FUNÇÃO PARA PÁGINA FEMININA(RETORNA APENAS A CATEGORIA FEMININA SEPARADA POR ITENS)
 class ProdutosFemininaView(APIView):
@@ -71,7 +76,7 @@ class ProdutosFemininaView(APIView):
     def get(self, request):
         categoria = Categoria.objects.filter(slug='feminina').first()
         if not categoria:
-            return Response({"detail": "Categoria Feminina não encontrada."}, status=404)
+            return Response({"detail": "Categoria Feminina não encontrada."}, status=status.HTTP_404_NOT_FOUND)
         
         produtos = Produto.objects.filter(categoria=categoria).select_related('tipo')
         produtos_por_tipo = defaultdict(list)
@@ -87,7 +92,7 @@ class ProdutosFemininaView(APIView):
                 'produtos': serializer.data
             })
 
-        return Response(response_data)
+        return Response(response_data, status=status.HTTP_200_OK)
 
 #FUNÇÃO PARA PÁGINA MASCULINA(RETORNA APENAS A CATEGORIA FEMININA SEPARADA POR ITENS)
 class ProdutosMasculinaView(APIView):
@@ -96,7 +101,7 @@ class ProdutosMasculinaView(APIView):
     def get(self, request):
         categoria = Categoria.objects.filter(slug='masculina').first()
         if not categoria:
-            return Response({"detail": "Categoria Masculina não encontrada."}, status=404)
+            return Response({"detail": "Categoria Masculina não encontrada."}, status=status.HTTP_404_NOT_FOUND)
         
         produtos = Produto.objects.filter(categoria=categoria).select_related('tipo')
         produtos_por_tipo = defaultdict(list)
@@ -112,7 +117,7 @@ class ProdutosMasculinaView(APIView):
                 'produtos': serializer.data
             })
 
-        return Response(response_data)
+        return Response(response_data, status=status.HTTP_200_OK)
 
 #FUNÇÃO PARA PÁGINA INFANTIL(RETORNA APENAS A CATEGORIA FEMININA SEPARADA POR ITENS)
 class ProdutosInfantilView(APIView):
@@ -121,7 +126,7 @@ class ProdutosInfantilView(APIView):
     def get(self, request):
         categoria = Categoria.objects.filter(slug='infantil').first()
         if not categoria:
-            return Response({"detail": "Categoria Infantil não encontrada."}, status=404)
+            return Response({"detail": "Categoria Infantil não encontrada."}, status=status.HTTP_404_NOT_FOUND)
         
         produtos = Produto.objects.filter(categoria=categoria).select_related('tipo')
         produtos_por_tipo = defaultdict(list)
@@ -137,7 +142,7 @@ class ProdutosInfantilView(APIView):
                 'produtos': serializer.data
             })
 
-        return Response(response_data)
+        return Response(response_data, status=status.HTTP_200_OK)
 
 #FUNÇÃO PARA PÁGINA DE ASSESSORIOS(RETORNA APENAS A CATEGORIA FEMININA SEPARADA POR ITENS)
 class ProdutosAcessoriosView(APIView):
@@ -146,7 +151,7 @@ class ProdutosAcessoriosView(APIView):
     def get(self, request):
         categoria = Categoria.objects.filter(slug='acessorios').first()
         if not categoria:
-            return Response({"detail": "Categoria Acessórios não encontrada."}, status=404)
+            return Response({"detail": "Categoria Acessórios não encontrada."}, status=status.HTTP_404_NOT_FOUND)
         
         produtos = Produto.objects.filter(categoria=categoria).select_related('tipo')
         produtos_por_tipo = defaultdict(list)
@@ -162,5 +167,5 @@ class ProdutosAcessoriosView(APIView):
                 'produtos': serializer.data
             })
 
-        return Response(response_data)
+        return Response(response_data, status=status.HTTP_200_OK)
     
