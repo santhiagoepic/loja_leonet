@@ -8,6 +8,7 @@ from produtos.views import (
     ProdutosMasculinaView,
     ProdutosInfantilView,
     ProdutosAcessoriosView,
+    AvaliacaoAPIView,
 )
 from rest_framework.authtoken.views import obtain_auth_token
 from django.conf import settings
@@ -28,4 +29,8 @@ urlpatterns = [
     path('api/produtos_masculina/', ProdutosMasculinaView.as_view()),
     path('api/produtos_infantil/', ProdutosInfantilView.as_view()),
     path('api/produtos_acessorios/', ProdutosAcessoriosView.as_view()),
+    #avaliação
+    path('api/avaliacoes/', AvaliacaoAPIView.as_view(), name='avaliacoes-list'),
+    path('api/produtos/<int:produto_id>/avaliacoes/', AvaliacaoAPIView.as_view(), name='avaliacoes-by-product'),
+    path('api/avaliacoes/<int:pk>/', AvaliacaoAPIView.as_view(), name='avaliacoes-detail'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
