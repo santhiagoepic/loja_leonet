@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Categoria, Produto, Banner, Contato, TipoItem, Avaliacao, TipoAvaliacao
+from .models import Categoria, Produto, Banner, Contato, TipoItem, Avaliacao, TipoAvaliacao, Suporte
 
 class CategoriaSerializer(serializers.ModelSerializer):
     class Meta:
@@ -55,3 +55,8 @@ class AvaliacaoListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Avaliacao
         fields = ['id', 'tipo_avaliacao', 'comentario', 'nota', 'foto_produto', 'data', 'nome_completo']
+
+class SuporteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Suporte
+        fields = '__all__'

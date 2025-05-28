@@ -1,8 +1,8 @@
 from rest_framework import viewsets, generics, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import Categoria, Produto, Banner, Contato
-from .serializers import CategoriaSerializer, ProdutoSerializer, BannerSerializer, ContatoSerializer, AvaliacaoSerializer, Avaliacao, AvaliacaoListSerializer
+from .models import Categoria, Produto, Banner, Contato, Suporte
+from .serializers import CategoriaSerializer, ProdutoSerializer, BannerSerializer, ContatoSerializer, AvaliacaoSerializer, Avaliacao, AvaliacaoListSerializer, SuporteSerializer
 from rest_framework.views import APIView
 from collections import defaultdict
 from django.shortcuts import get_object_or_404
@@ -218,6 +218,19 @@ class AvaliacaoAPIView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def patch(self, request, pk=None):
+        if not pk:
+            return Response({'erro': 'ID da avaliação é obrigatório para atualização parcial.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        avaliacao = get_object_or_404(Avaliacao, pk=pk)
+        serializer = AvaliacaoSerializer(avaliacao, data=request.data, partial=True)  # <- partial=True é a chave
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk=None):
         if pk:
@@ -249,3 +262,17 @@ class AvaliacaoAPIView(APIView):
                 {'erro': 'Avaliação não encontrada.'},
                 status=status.HTTP_404_NOT_FOUND
             )
+        
+
+class SuporteAPIView(APIView):
+    def get(self, request):
+        suportes = Suporte.objects.all()
+        serializer = SuporteSerializer(suportes, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = SuporteSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
