@@ -1,10 +1,13 @@
 from rest_framework import viewsets, generics, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import Categoria, Produto, Banner, Contato
-from .serializers import CategoriaSerializer, ProdutoSerializer, BannerSerializer, ContatoSerializer
+from .models import Categoria, Produto, Banner, Contato, Suporte
+from .serializers import CategoriaSerializer, ProdutoSerializer, BannerSerializer, ContatoSerializer, AvaliacaoSerializer, Avaliacao, AvaliacaoListSerializer, SuporteSerializer
 from rest_framework.views import APIView
 from collections import defaultdict
+from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
 
 # ViewSet para Produto (com CRUD completo + ação de destaque)
@@ -169,3 +172,107 @@ class ProdutosAcessoriosView(APIView):
 
         return Response(response_data, status=status.HTTP_200_OK)
     
+# View para criar uma nova avaliação
+class AvaliacaoAPIView(APIView):
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def get(self, request, produto_id=None):
+        if produto_id:
+            # Filtra avaliações por TipoAvaliacao (produto)
+            avaliacoes = Avaliacao.objects.filter(
+                tipo_avaliacao_id=produto_id
+            ).order_by('-data')
+        else:
+            avaliacoes = Avaliacao.objects.all().order_by('-data')
+            
+        serializer = AvaliacaoListSerializer(avaliacoes, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        # Validação manual dos campos obrigatórios
+        required_fields = ['tipo_avaliacao_id', 'nota', 'foto_produto', 'nome_completo']
+        errors = {}
+        
+        for field in required_fields:
+            if field not in request.data:
+                errors[field] = ['Este campo é obrigatório.']
+        
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validação da nota
+        try:
+            nota = int(request.data['nota'])
+            if not 0 <= nota <= 10:
+                errors['nota'] = ['A nota deve estar entre 0 e 10.']
+        except (ValueError, TypeError):
+            errors['nota'] = ['A nota deve ser um número inteiro.']
+        
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = AvaliacaoSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def patch(self, request, pk=None):
+        if not pk:
+            return Response({'erro': 'ID da avaliação é obrigatório para atualização parcial.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        avaliacao = get_object_or_404(Avaliacao, pk=pk)
+        serializer = AvaliacaoSerializer(avaliacao, data=request.data, partial=True)  # <- partial=True é a chave
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk=None):
+        if pk:
+            avaliacao = get_object_or_404(Avaliacao, pk=pk)
+            avaliacao.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        
+        # Método alternativo por nome
+        avaliacao_id = request.data.get('id')
+        nome = request.data.get('nome_completo')
+        
+        if not avaliacao_id or not nome:
+            return Response(
+                {'erro': 'Informe o ID da avaliação e o nome completo.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        try:
+            avaliacao = Avaliacao.objects.get(pk=avaliacao_id)
+            if avaliacao.nome_completo.strip().lower() != nome.strip().lower():
+                return Response(
+                    {'erro': 'Nome incorreto. Você não pode deletar esta avaliação.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            avaliacao.delete()
+            return Response({'mensagem': 'Avaliação deletada com sucesso.'})
+        except Avaliacao.DoesNotExist:
+            return Response(
+                {'erro': 'Avaliação não encontrada.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+
+class SuporteAPIView(APIView):
+    def get(self, request):
+        suportes = Suporte.objects.all()
+        serializer = SuporteSerializer(suportes, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = SuporteSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
