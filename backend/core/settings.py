@@ -29,7 +29,10 @@ SECRET_KEY = 'django-insecure-v@9f*lb4=78s!6gm1%!s&$@5oxwt6&3ko_%lt20(pqi_=mfn9^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = ['*']
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",
+# ]
 
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -46,11 +49,12 @@ INSTALLED_APPS = [
     'cloudinary',
     'cloudinary_storage',
     'produtos',
-    # 'corsheaders',
+    'corsheaders',
     'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

@@ -1,7 +1,8 @@
-'use client';
-import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { MapPin, Instagram } from 'lucide-react';
+"use client";
+
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { MapPin, Instagram } from "lucide-react";
 
 export default function ContatoPage() {
   const [contatoData, setContatoData] = useState(null);
@@ -11,19 +12,15 @@ export default function ContatoPage() {
   useEffect(() => {
     const fetchContatoData = async () => {
       try {
-        // Adicione um timeout para evitar espera infinita
-        const response = await axios.get('http://127.0.0.1:8000/api/contato/', {
-          timeout: 5000
+        const response = await axios.get("http://127.0.0.1:8000/api/contato/", {
+          timeout: 5000,
         });
-        
-        // Verifica se a resposta tem os dados mínimos esperados
         if (!response.data || !response.data.endereco) {
-          throw new Error('Dados da API incompletos');
+          throw new Error("Dados da API incompletos");
         }
-        
         setContatoData(response.data);
       } catch (err) {
-        console.error('Erro na requisição:', err);
+        console.error("Erro na requisição:", err);
         setError(`Erro ao carregar: ${err.message}`);
       } finally {
         setLoading(false);
@@ -33,49 +30,60 @@ export default function ContatoPage() {
     fetchContatoData();
   }, []);
 
-  if (loading) return (
-    <div className="text-center py-20">
-      <p>Carregando informações de contato...</p>
-    </div>
-  );
+  if (loading)
+    return (
+      <div className="text-center py-20">
+        <p className="text-lg text-gray-700 animate-pulse">
+          Carregando informações de contato...
+        </p>
+      </div>
+    );
 
-  if (error) return (
-    <div className="text-center py-20 text-red-500">
-      <p>{error}</p>
-      <p className="mt-4 text-sm text-gray-600">
-        Tente recarregar a página ou volte mais tarde.
-      </p>
-    </div>
-  );
+  if (error)
+    return (
+      <div className="text-center py-20 text-red-500">
+        <p className="text-xl font-semibold">{error}</p>
+        <p className="mt-4 text-sm text-gray-600">
+          Tente recarregar a página ou volte mais tarde.
+        </p>
+      </div>
+    );
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4">
-      <h1 className="text-3xl font-bold text-center mb-8">Contato</h1>
-      
-      <div className="grid md:grid-cols-2 gap-8">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Informações</h2>
-          
-          <div className="space-y-4">
+    <div className="max-w-5xl mx-auto py-16 px-6">
+      <h1 className="text-4xl font-extrabold text-center text-amber-600 mb-12">
+        Entre em Contato
+      </h1>
+
+      <div className="grid md:grid-cols-2 gap-10">
+        <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-shadow">
+          <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2 border-amber-500">
+            Informações
+          </h2>
+
+          <div className="space-y-6">
             <div className="flex items-start">
-              <MapPin className="h-5 w-5 mt-1 mr-3 text-amber-600" />
+              <MapPin className="h-6 w-6 mt-1 mr-4 text-amber-600" />
               <div>
-                <h3 className="font-medium">Endereço</h3>
+                <h3 className="font-semibold text-gray-700">Endereço</h3>
                 <p className="text-gray-600">{contatoData.endereco}</p>
               </div>
             </div>
 
             <div className="flex items-start">
-              <Instagram className="h-5 w-5 mt-1 mr-3 text-amber-600" />
+              <Instagram className="h-6 w-6 mt-1 mr-4 text-pink-500" />
               <div>
-                <h3 className="font-medium">Instagram</h3>
-                <a 
-                  href={contatoData.instagram} 
+                <h3 className="font-semibold text-gray-700">Instagram</h3>
+                <a
+                  href={contatoData.instagram}
                   target="_blank"
-                  rel="noopener"
-                  className="text-blue-600 hover:underline"
+                  rel="noopener noreferrer"
+                  className="inline-block mt-1 bg-pink-500 text-white px-4 py-2 rounded-full hover:bg-pink-600 transition"
                 >
-                  {contatoData.instagram.replace('https://www.instagram.com/', '@')}
+                  {contatoData.instagram.replace(
+                    "https://www.instagram.com/",
+                    "@"
+                  )}
                 </a>
               </div>
             </div>
@@ -83,9 +91,11 @@ export default function ContatoPage() {
         </div>
 
         {contatoData.sobre_loja && (
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Sobre a Loja</h2>
-            <p className="text-gray-600 whitespace-pre-line">
+          <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-shadow">
+            <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2 border-amber-500">
+              Sobre a Loja
+            </h2>
+            <p className="text-gray-600 leading-relaxed whitespace-pre-line">
               {contatoData.sobre_loja}
             </p>
           </div>

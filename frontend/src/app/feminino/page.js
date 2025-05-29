@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
 export default function ProdutosFemininos() {
-  const [produtos, setProdutos] = useState([]);
+  const [produtosPorTipo, setProdutosPorTipo] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -15,13 +15,17 @@ export default function ProdutosFemininos() {
     const fetchProdutos = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch("http://127.0.0.1:8000/api/produtos_feminina/");
+        const response = await fetch(
+          "http://127.0.0.1:8000/api/produtos_feminina/"
+        );
 
         if (!response.ok) throw new Error("Falha ao carregar os produtos");
         const data = await response.json();
-        setProdutos(data);
+        setProdutosPorTipo(data);
       } catch (err) {
-        setError("Erro ao carregar produtos. Por favor, tente novamente mais tarde.");
+        setError(
+          "Erro ao carregar produtos. Por favor, tente novamente mais tarde."
+        );
         console.error(err);
       } finally {
         setIsLoading(false);
@@ -31,18 +35,26 @@ export default function ProdutosFemininos() {
     fetchProdutos();
   }, []);
 
+  // Achata todos os produtos em uma única lista
+  const todosProdutos = produtosPorTipo.flatMap((tipo) => tipo.produtos);
+
   // Lógica de paginação
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = produtos.slice(indexOfFirstProduct, indexOfLastProduct);
-  const totalPages = Math.ceil(produtos.length / productsPerPage);
+  const currentProducts = todosProdutos.slice(
+    indexOfFirstProduct,
+    indexOfLastProduct
+  );
+  const totalPages = Math.ceil(todosProdutos.length / productsPerPage);
 
   const imageBaseUrl = "https://res.cloudinary.com/dzlm6jkhv/";
 
   return (
     <div className="min-h-screen bg-gray-50 font-bold">
       <main className="flex-grow w-full max-w-7xl mx-auto px-4 py-8">
-        <h2 className="text-3xl font-bold text-yellow-600 mb-8">Produtos Femininos</h2>
+        <h2 className="text-3xl font-bold text-yellow-600 mb-8">
+          Produtos Femininos
+        </h2>
 
         {isLoading ? (
           <div className="flex justify-center">
@@ -54,8 +66,11 @@ export default function ProdutosFemininos() {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {currentProducts.map((produto) => (
-                <div key={produto.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                  <div className="relative h-100 w-full">
+                <div
+                  key={produto.id}
+                  className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
+                >
+                  <div className="relative h-64 w-full">
                     <Image
                       src={`${imageBaseUrl}${produto.imagem}`}
                       alt={produto.nome}
@@ -102,25 +117,33 @@ export default function ProdutosFemininos() {
             {totalPages > 1 && (
               <div className="flex justify-center mt-8 gap-2">
                 <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(prev - 1, 1))
+                  }
                   disabled={currentPage === 1}
                   className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
                 >
                   Anterior
                 </button>
-                
+
                 {Array.from({ length: totalPages }, (_, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentPage(i + 1)}
-                    className={`px-4 py-2 rounded ${currentPage === i + 1 ? 'bg-yellow-600 text-white' : 'bg-gray-200'}`}
+                    className={`px-4 py-2 rounded ${
+                      currentPage === i + 1
+                        ? "bg-yellow-600 text-white"
+                        : "bg-gray-200"
+                    }`}
                   >
                     {i + 1}
                   </button>
                 ))}
 
                 <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
                   disabled={currentPage === totalPages}
                   className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
                 >

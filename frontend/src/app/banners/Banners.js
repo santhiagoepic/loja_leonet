@@ -11,14 +11,10 @@ export default function Banners() {
 
   useEffect(() => {
     const fetchBanners = async () => {
-      try {
-        const response = await fetch("http://127.0.0.1:8000/api/banners/");
-        const data = await response.json();
-        const ativos = data.filter((banner) => banner.ativo === true);
-        setBanners(ativos);
-      } catch (error) {
-        console.error("Erro ao carregar banners:", error);
-      }
+      const response = await fetch("http://127.0.0.1:8000/api/banners/");
+      const data = await response.json();
+      const ativos = data.filter((banner) => banner.ativo === true);
+      setBanners(ativos);
     };
 
     fetchBanners();
