@@ -1,7 +1,7 @@
 from rest_framework import viewsets, generics, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import Categoria, Produto, Banner, Contato, Suporte
+from .models import Categoria, Produto, Banner, Contato, Suporte, TipoAvaliacao
 from .serializers import CategoriaSerializer, ProdutoSerializer, BannerSerializer, ContatoSerializer, AvaliacaoSerializer, Avaliacao, AvaliacaoListSerializer, SuporteSerializer
 from rest_framework.views import APIView
 from collections import defaultdict
@@ -178,9 +178,11 @@ class AvaliacaoAPIView(APIView):
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
-    def get(self, request, produto_id=None):
+    def get(self, request):
+        produto_id = request.query_params.get('produto_id')
+        print(f"Produto ID recebido pela query string: {produto_id}")  # Debugging line
+        
         if produto_id:
-            # Filtra avaliações por TipoAvaliacao (produto)
             avaliacoes = Avaliacao.objects.filter(
                 tipo_avaliacao_id=produto_id
             ).order_by('-data')
@@ -191,34 +193,181 @@ class AvaliacaoAPIView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
-        # Validação manual dos campos obrigatórios
-        required_fields = ['tipo_avaliacao_id', 'nota', 'foto_produto', 'nome_completo']
+        data = request.data
         errors = {}
-        
+
+        # Validação dos campos obrigatórios
+        required_fields = ['produto_id', 'tipo_avaliacao_id', 'nota', 'foto_produto', 'nome_completo']
         for field in required_fields:
-            if field not in request.data:
+            if field not in data or not data.get(field):
                 errors[field] = ['Este campo é obrigatório.']
-        
-        if errors:
-            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
-        
+
         # Validação da nota
         try:
-            nota = int(request.data['nota'])
-            if not 0 <= nota <= 10:
+            nota = int(data.get('nota'))
+            if nota < 0 or nota > 10:
                 errors['nota'] = ['A nota deve estar entre 0 e 10.']
-        except (ValueError, TypeError):
+        except (TypeError, ValueError):
             errors['nota'] = ['A nota deve ser um número inteiro.']
-        
+
+        # Validação do Produto
+        try:
+            produto = Produto.objects.get(pk=data.get('produto_id'))
+        except Produto.DoesNotExist:
+            errors['produto_id'] = ['Produto com esse ID não existe.']
+
+        # Validação do TipoAvaliacao
+        try:
+            tipo_avaliacao = TipoAvaliacao.objects.get(pk=data.get('tipo_avaliacao_id'))
+        except TipoAvaliacao.DoesNotExist:
+            errors['tipo_avaliacao_id'] = ['TipoAvaliacao com esse ID não existe.']
+
+        # Se houver erros, retorna 400
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
-        
-        serializer = AvaliacaoSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
+        # Extrair demais dados
+        nome_completo = data.get('nome_completo')
+        comentario = data.get('comentario', '')  # opcional
+        foto_produto = request.FILES.get('foto_produto')
+
+        # Criar e salvar a Avaliacao
+        avaliacao = Avaliacao(
+            produto=produto,
+            tipo_avaliacao=tipo_avaliacao,
+            nota=nota,
+            nome_completo=nome_completo,
+            comentario=comentario,
+            foto_produto=foto_produto
+        )
+        avaliacao.save()
+
+        # Retorno simples
+        return Response({
+            'id': avaliacao.id,
+            'produto_id': produto.id,
+            'tipo_avaliacao_id': tipo_avaliacao.id,
+            'nota': avaliacao.nota,
+            'nome_completo': avaliacao.nome_completo,
+            'comentario': avaliacao.comentario,
+            'foto_produto_url': avaliacao.foto_produto.url if avaliacao.foto_produto else None,
+            'data': avaliacao.data
+        }, status=status.HTTP_201_CREATED)
+        data = request.data
+        errors = {}
+
+        # Validação dos campos obrigatórios
+        required_fields = ['produto_id', 'tipo_avaliacao_id', 'nota', 'foto_produto', 'nome_completo']
+        for field in required_fields:
+            if field not in data or not data.get(field):
+                errors[field] = ['Este campo é obrigatório.']
+
+        # Validação da nota
+        try:
+            nota = int(data.get('nota'))
+            if nota < 0 or nota > 10:
+                errors['nota'] = ['A nota deve estar entre 0 e 10.']
+        except (TypeError, ValueError):
+            errors['nota'] = ['A nota deve ser um número inteiro.']
+
+        # Validação do Produto
+        try:
+            produto = Produto.objects.get(pk=data.get('produto_id'))
+        except Produto.DoesNotExist:
+            errors['produto_id'] = ['Produto com esse ID não existe.']
+
+        # Validação do TipoAvaliacao
+        try:
+            tipo_avaliacao = TipoAvaliacao.objects.get(pk=data.get('tipo_avaliacao_id'))
+        except TipoAvaliacao.DoesNotExist:
+            errors['tipo_avaliacao_id'] = ['TipoAvaliacao com esse ID não existe.']
+
+        # Se houver erros, retorna 400
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Extrair demais dados
+        nome_completo = data.get('nome_completo')
+        comentario = data.get('comentario', '')  # opcional
+        foto_produto = request.FILES.get('foto_produto')
+
+        # Criar e salvar a Avaliacao
+        avaliacao = Avaliacao(
+            produto=produto,
+            tipo_avaliacao=tipo_avaliacao,
+            nota=nota,
+            nome_completo=nome_completo,
+            comentario=comentario,
+            foto_produto=foto_produto
+        )
+        avaliacao.save()
+
+        # Retorno simples
+        return Response({
+            'id': avaliacao.id,
+            'produto_id': produto.id,
+            'tipo_avaliacao_id': tipo_avaliacao.id,
+            'nota': avaliacao.nota,
+            'nome_completo': avaliacao.nome_completo,
+            'comentario': avaliacao.comentario,
+            'foto_produto_url': avaliacao.foto_produto.url if avaliacao.foto_produto else None,
+            'data': avaliacao.data
+        }, status=status.HTTP_201_CREATED)
+        data = request.data
+        errors = {}
+
+        # Validação dos campos obrigatórios
+        required_fields = ['tipo_avaliacao_id', 'nota', 'foto_produto', 'nome_completo']
+        for field in required_fields:
+            if field not in data or not data.get(field):
+                errors[field] = ['Este campo é obrigatório.']
+
+        # Validação específica da nota
+        try:
+            nota = int(data.get('nota'))
+            if nota < 0 or nota > 10:
+                errors['nota'] = ['A nota deve estar entre 0 e 10.']
+        except (TypeError, ValueError):
+            errors['nota'] = ['A nota deve ser um número inteiro.']
+
+        # Validação do TipoAvaliacao
+        try:
+            tipo_avaliacao = TipoAvaliacao.objects.get(pk=data.get('tipo_avaliacao_id'))
+        except TipoAvaliacao.DoesNotExist:
+            errors['tipo_avaliacao_id'] = ['TipoAvaliacao com esse ID não existe.']
+
+        # Se houver erros, retorna 400
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Extração dos dados restantes
+        nome_completo = data.get('nome_completo')
+        comentario = data.get('comentario', '')  # opcional
+        foto_produto = request.FILES.get('foto_produto')
+        produto = Produto.objects.get(pk=data.get('produto_id'))
+
+        # Criar e salvar a Avaliacao
+        avaliacao = Avaliacao(
+            produto=produto,
+            tipo_avaliacao=tipo_avaliacao,
+            nota=nota,
+            nome_completo=nome_completo,
+            comentario=comentario,
+            foto_produto=foto_produto
+        )
+        avaliacao.save()
+
+        # Retorna a representação do objeto criado
+        return Response({
+            'id': avaliacao.id,
+            'tipo_avaliacao_id': tipo_avaliacao.id,
+            'nota': avaliacao.nota,
+            'nome_completo': avaliacao.nome_completo,
+            'comentario': avaliacao.comentario,
+            'foto_produto_url': avaliacao.foto_produto.url if avaliacao.foto_produto else None,
+            'data': avaliacao.data
+        }, status=status.HTTP_201_CREATED)
+
     def patch(self, request, pk=None):
         if not pk:
             return Response({'erro': 'ID da avaliação é obrigatório para atualização parcial.'}, status=status.HTTP_400_BAD_REQUEST)

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
+import ListarCategoria from "../components/listarCategoria";
 
 export default function ProdutosInfantil() {
   const [produtosPorTipo, setProdutosPorTipo] = useState([]);
@@ -41,69 +42,11 @@ export default function ProdutosInfantil() {
   const todosProdutos = produtosPorTipo.flatMap((tipo) => tipo.produtos);
 
   return (
-    <div className="min-h-screen bg-gray-50 font-bold">
-      <main className="flex-grow w-full max-w-7xl mx-auto px-4 py-8">
-        <h2 className="text-3xl font-bold text-yellow-600 mb-8">
-          Produtos Infantil
-        </h2>
-
-        {isLoading ? (
-          <div className="flex justify-center">
-            <Loader2 className="animate-spin h-8 w-8 text-yellow-600" />
-          </div>
-        ) : error ? (
-          <p className="text-red-500 text-center">{error}</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {todosProdutos.map((produto) => (
-              <div
-                key={produto.id}
-                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
-              >
-                <div className="relative h-64 w-full">
-                  <Image
-                    src={`${imageBaseUrl}${produto.imagem}`}
-                    alt={produto.nome}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                  />
-                  {produto.em_destaque && (
-                    <div className="absolute top-2 right-2 bg-yellow-600 text-white text-xs font-bold px-2 py-1 rounded">
-                      Destaque
-                    </div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-1">
-                    {produto.nome}
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-2 line-clamp-2">
-                    {produto.descricao}
-                  </p>
-                  <div className="flex justify-between items-center mt-4">
-                    <span className="text-xl font-bold text-pink-600">
-                      R${" "}
-                      {Number.parseFloat(produto.preco)
-                        .toFixed(2)
-                        .replace(".", ",")}
-                    </span>
-                    <Link
-                      href={produto.link_whatsapp}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full text-sm sm:text-base font-semibold transition duration-200">
-                        Comprar
-                      </button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </main>
-    </div>
+    <ListarCategoria
+      todosProdutos={todosProdutos}
+      isLoading={isLoading}
+      error={error}
+      titulo={"Infantil"}
+    />
   );
 }

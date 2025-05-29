@@ -44,10 +44,10 @@ class AvaliacaoSerializer(serializers.ModelSerializer):
             'data': {'read_only': True}
         }
 
-    def validate_nota(self, value):
-        if not 0 <= value <= 10:
-            raise serializers.ValidationError("A nota deve estar entre 0 e 10.")
-        return value
+    # def validate_nota(self, value):
+    #     if not 0 <= value <= 10:
+    #         raise serializers.ValidationError("A nota deve estar entre 0 e 10.")
+    #     return value
 
 class AvaliacaoListSerializer(serializers.ModelSerializer):
     tipo_avaliacao = TipoAvaliacaoSerializer()
