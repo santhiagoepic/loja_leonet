@@ -41,48 +41,48 @@ export function Header() {
   };
 
   return (
-    <header className="bg-yellow-600 shadow-sm">
+    <header className="bg-white shadow-lg border-b-4 border-orange-500">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          {/* Logo aumentada à esquerda */}
-          <div className="relative w-20 h-24">
+          {/* Logo aumentada e mais destacada */}
+          <div className="relative w-24 h-28 flex-shrink-0">
             <Image
               src="/leonetlogo.png"
               alt="Leonete Modas"
               fill
-              className="object-contain"
+              className="object-contain drop-shadow-lg"
               priority
             />
           </div>
 
-          {/* Botões à direita - versão desktop */}
-          <div className="hidden md:flex items-center space-x-6 text-black">
+          {/* Navegação desktop - centralizada e com melhor espaçamento */}
+          <nav className="hidden md:flex items-center space-x-8">
             <NavLink href="/" text="Home" />
             <NavLink href="/masculino" text="Masculino" />
             <NavLink href="/feminino" text="Feminino" />
             <NavLink href="/infantil" text="Infantil" />
             <NavLink href="/acessorios" text="Acessórios" />
             <NavLink href="/contato" text="Contato" />
-            <NavLink href="/suporte" text="suporte" />
-          </div>
+            <NavLink href="/suporte" text="Suporte" />
+          </nav>
 
           {/* Botão do menu hamburguer - versão mobile */}
           <div className="md:hidden">
             <button
               onClick={toggleMenu}
-              className="text-black focus:outline-none transition-transform duration-300 hover:scale-110"
+              className="text-gray-700 focus:outline-none transition-all duration-300 hover:bg-orange-500 hover:text-white p-2 rounded-lg"
               aria-label="Menu"
             >
               {isMenuOpen ? (
-                <X size={28} className="text-black" />
+                <X size={28} />
               ) : (
-                <Menu size={28} className="text-black" />
+                <Menu size={28} />
               )}
             </button>
           </div>
         </div>
 
-        {/* Menu mobile com animação */}
+        {/* Menu mobile com animação melhorada */}
         <AnimatePresence>
           {isMenuOpen && (
             <motion.div
@@ -90,10 +90,10 @@ export function Header() {
               animate="open"
               exit="closed"
               variants={menuVariants}
-              className="md:hidden overflow-hidden"
+              className="md:hidden overflow-hidden bg-white rounded-lg shadow-xl mt-4"
             >
               <motion.div 
-                className="flex flex-col space-y-3 pt-4 pb-4"
+                className="flex flex-col py-4"
                 variants={{
                   open: {
                     transition: { staggerChildren: 0.1 }
@@ -119,24 +119,26 @@ export function Header() {
   );
 }
 
-// Componente para links de navegação (desktop)
+// Componente para links de navegação (desktop) - melhorado
 function NavLink({ href, text }) {
   return (
     <Link href={href}>
-      <button className="relative px-2 py-1 text-lg font-bold hover:after:w-full after:absolute after:left-0 after:bottom-0 after:h-[2px] after:w-0 after:bg-black after:transition-all after:duration-300">
+      <button className="relative px-4 py-2 font-bold text-gray-800 hover:text-orange-600 transition-all duration-300 group">
         {text}
+        <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-1 bg-orange-500 group-hover:w-3/4 transition-all duration-300 rounded-full"></span>
       </button>
     </Link>
   );
 }
 
-// Componente para links de navegação (mobile) com animação
+// Componente para links de navegação (mobile) - melhorado
 function MobileNavLink({ href, text, onClick, variants }) {
   return (
     <motion.div variants={variants}>
       <Link href={href} onClick={onClick}>
-        <button className="w-full text-left px-4 py-3 text-lg font-bold bg-yellow-500 rounded-md hover:bg-yellow-400 transition-colors duration-300">
-          {text}
+        <button className="w-full text-left px-6 py-4 text-lg font-bold text-gray-800 hover:bg-orange-50 hover:text-orange-600 border-b border-gray-100 last:border-b-0 transition-all duration-300 flex items-center">
+          <span className="flex-1">{text}</span>
+          <span className="text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300">→</span>
         </button>
       </Link>
     </motion.div>
