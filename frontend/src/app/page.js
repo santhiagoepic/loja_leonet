@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Loader2, X, Star, Camera, Info } from "lucide-react";
 import axios from "axios";
 import Banners from "./banners/Banners";
+import { apiUrl } from "../lib/api";
 
 // Componente de Card de Produto Interativo
 const ProductCard = ({ produto, onWhatsApp, onAvaliar, imageBaseUrl }) => {
@@ -462,10 +463,10 @@ export default function Home() {
         setError(null);
 
         const endpoints = [
-          "http://127.0.0.1:8000/api/produtos_feminina/",
-          "http://127.0.0.1:8000/api/produtos_masculina/",
-          "http://127.0.0.1:8000/api/produtos_acessorios/",
-          "http://127.0.0.1:8000/api/produtos_infantil/"
+          apiUrl("/api/produtos_feminina/"),
+          apiUrl("/api/produtos_masculina/"),
+          apiUrl("/api/produtos_acessorios/"),
+          apiUrl("/api/produtos_infantil/")
         ];
 
         const responses = await Promise.all(
@@ -537,7 +538,7 @@ Aguardo seu retorno! 😊`;
 
     try {
       const response = await axios.get(
-        `http://127.0.0.1:8000/api/avaliacoes/?produto_id=${produto.id}`
+        apiUrl(`/api/avaliacoes/?produto_id=${produto.id}`)
       );
       setAvaliacoes(response.data);
     } catch (err) {
@@ -576,7 +577,7 @@ Aguardo seu retorno! 😊`;
       }
 
       const response = await axios.post(
-        "http://127.0.0.1:8000/api/avaliacoes/",
+        apiUrl("/api/avaliacoes/"),
         formData,
         {
           headers: {

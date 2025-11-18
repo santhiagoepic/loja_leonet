@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Loader2, Camera, Star, X, MessageCircle } from "lucide-react";
 import ListarCategoria from "../components/listarCategoria";
+import { apiUrl } from "../../lib/api";
 
 // Componente do Card Interativo
 const ProductCard = ({ product, imageBaseUrl }) => {
@@ -431,9 +432,7 @@ export default function ProdutosFemininos() {
     const fetchProdutos = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(
-          "http://127.0.0.1:8000/api/produtos_feminina/"
-        );
+        const response = await fetch(apiUrl("/api/produtos_feminina/"));
 
         if (!response.ok) throw new Error("Falha ao carregar os produtos");
         const data = await response.json();

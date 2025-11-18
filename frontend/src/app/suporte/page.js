@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Mail, Phone, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
+import { apiUrl } from '../../lib/api';
 
 export default function SuportePage() {
   const [suportes, setSuportes] = useState([]);
@@ -21,7 +22,7 @@ export default function SuportePage() {
   useEffect(() => {
     const fetchSuportes = async () => {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/api/suporte/');
+        const response = await axios.get(apiUrl('/api/suporte/'));
         setSuportes(response.data);
       } catch (err) {
         setError('Erro ao carregar chamados de suporte');
@@ -38,7 +39,7 @@ export default function SuportePage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/suporte/', formData);
+      const response = await axios.post(apiUrl('/api/suporte/'), formData);
       setSuportes([...suportes, response.data]);
       setFormData({
         mensagem: '',

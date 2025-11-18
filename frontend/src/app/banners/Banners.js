@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { apiUrl } from "../../lib/api";
 
 export default function Banners() {
   const [banners, setBanners] = useState([]);
@@ -11,7 +12,7 @@ export default function Banners() {
 
   useEffect(() => {
     const fetchBanners = async () => {
-      const response = await fetch("http://127.0.0.1:8000/api/banners/");
+      const response = await fetch(apiUrl("/api/banners/"));
       const data = await response.json();
       const ativos = data.filter((banner) => banner.ativo === true);
       setBanners(ativos);

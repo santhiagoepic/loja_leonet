@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { MapPin, Instagram, Mail, Phone, Clock, Heart } from 'lucide-react';
+import { apiUrl } from '../../lib/api';
 
 export default function ContatoPage() {
   const [contatoData, setContatoData] = useState(null);
@@ -12,7 +13,7 @@ export default function ContatoPage() {
   useEffect(() => {
     const fetchContatoData = async () => {
       try {
-        const response = await axios.get("http://127.0.0.1:8000/api/contato/", {
+        const response = await axios.get(apiUrl("/api/contato/"), {
           timeout: 5000,
         });
         

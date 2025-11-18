@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import ListarCategoria from "../components/listarCategoria";
+import { apiUrl } from "../../lib/api";
 
 export default function ProdutosInfantil() {
   const [produtosPorTipo, setProdutosPorTipo] = useState([]);
@@ -15,9 +16,7 @@ export default function ProdutosInfantil() {
     const fetchProdutos = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(
-          "http://127.0.0.1:8000/api/produtos_infantil/"
-        );
+        const response = await fetch(apiUrl("/api/produtos_infantil/"));
         if (!response.ok) throw new Error("Falha ao carregar os produtos");
 
         const data = await response.json();

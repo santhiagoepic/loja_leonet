@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ListarCategoria from "../components/listarCategoria";
+import { apiUrl } from "../../lib/api";
 
 export default function Produtosmasculino() {
   const [produtosPorTipo, setProdutosPorTipo] = useState([]);
@@ -12,9 +13,7 @@ export default function Produtosmasculino() {
     const fetchProdutos = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(
-          "http://127.0.0.1:8000/api/produtos_masculina/"
-        );
+        const response = await fetch(apiUrl("/api/produtos_masculina/"));
         if (!response.ok) throw new Error("Falha ao carregar os produtos");
 
         const data = await response.json();

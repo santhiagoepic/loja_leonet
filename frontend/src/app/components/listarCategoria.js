@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { Loader2, X } from "lucide-react";
 import axios from "axios";
+import { apiUrl } from "../../lib/api";
 
 export default function ListarCategoria({
   todosProdutos,
@@ -39,7 +40,7 @@ export default function ListarCategoria({
 
     try {
       const response = await axios.get(
-        `http://127.0.0.1:8000/api/avaliacoes/?produto_id=${produto.id}`
+        apiUrl(`/api/avaliacoes/?produto_id=${produto.id}`)
       );
       setAvaliacoes(response.data);
     } catch (err) {
@@ -75,7 +76,7 @@ export default function ListarCategoria({
       }
 
       const response = await axios.post(
-        "http://127.0.0.1:8000/api/avaliacoes/",
+        apiUrl("/api/avaliacoes/"),
         formData,
         {
           headers: {
