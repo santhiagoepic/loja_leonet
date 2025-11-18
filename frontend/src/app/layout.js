@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Header } from "./header/header"; //
 import { Footer } from "./footer/footer";
+import { AuthProvider } from "./providers/auth-context";
 
 export const metadata = {
   title: "Loja Leonete Modas",
@@ -11,9 +12,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="pt-br" crxemulator="i">
       <body>
-        <Header />
-        {children}
-        <Footer />
+        <AuthProvider>
+          <Header />
+          {children}
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );

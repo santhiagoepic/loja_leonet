@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 import os
 import cloudinary
 from dotenv import load_dotenv
@@ -46,9 +47,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
     'drf_yasg',
     'cloudinary',
     'cloudinary_storage',
+    'accounts',
     'produtos',
     'corsheaders',
     'rest_framework.authtoken',
@@ -69,6 +72,7 @@ ROOT_URLCONF = 'core.urls'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.TokenAuthentication',
     ],
 }
@@ -144,8 +148,44 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'http://localhost:3000')
+FRONTEND_VERIFY_EMAIL_PATH = os.getenv('FRONTEND_VERIFY_EMAIL_PATH', '/auth/verify-email')
+FRONTEND_RESET_PASSWORD_PATH = os.getenv('FRONTEND_RESET_PASSWORD_PATH', '/auth/reset-password')
+
 cloudinary.config(
   cloud_name = os.environ.get("CLOUDINARY_CLOUD_NAME"),
   api_key = os.environ.get("CLOUDINARY_API_KEY"),
   api_secret = os.environ.get("CLOUDINARY_API_SECRET")
 )
+
+SIMPLE_JWT = {
+        'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv('JWT_ACCESS_MINUTES', 30))),
+        'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.getenv('JWT_REFRESH_DAYS', 7))),
+        'ROTATE_REFRESH_TOKENS': True,
+        'BLACKLIST_AFTER_ROTATION': True,
+        'AUTH_HEADER_TYPES': ('Bearer',),
+        'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+}
+
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'no-reply@leonete.local')
+EMAIL_HOST = os.getenv('EMAIL_HOST')
+email_port = os.getenv('EMAIL_PORT')
+EMAIL_PORT = int(email_port) if email_port else None
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'False').lower() == 'true'
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true'
+
+SWAGGER_SETTINGS = {
+    'USE_SESSION_AUTH': False,
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'in': 'header',
+            'name': 'Authorization',
+            'description': 'Informe "Bearer <seu JWT>" para autenticar em rotas protegidas.',
+        }
+    },
+    'DEFAULT_API_URL': os.getenv('SWAGGER_BASE_URL', 'http://127.0.0.1:8000'),
+}

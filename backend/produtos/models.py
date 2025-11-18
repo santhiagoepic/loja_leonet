@@ -1,6 +1,18 @@
+from datetime import timedelta
+
 from django.db import models
+from django.conf import settings
+from django.utils import timezone
 from cloudinary.models import CloudinaryField
 from django.core.exceptions import ValidationError
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+    phone_number = models.CharField(max_length=20, blank=True)
+
+    def __str__(self):
+        return f"Perfil de {self.user.get_full_name() or self.user.email or self.user.username}"
 
 #Cria um banco de dados das Categorias dos produtos
 class Categoria(models.Model): #campo do tipo de item
@@ -64,10 +76,23 @@ class Avaliacao(models.Model):
     nome_completo = models.CharField(max_length=255)
     nota = models.IntegerField()
     foto_produto = CloudinaryField('image')
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='avaliacoes', null=True, blank=True)
+    compra_verificada = models.BooleanField(default=False)
+    verificado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='avaliacoes_verificadas',
+        null=True,
+        blank=True
+    )
+    verificado_em = models.DateTimeField(null=True, blank=True)
     data = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-data']  # Ordena por data decrescente por padrão
+        constraints = [
+            models.UniqueConstraint(fields=['produto', 'usuario'], name='unique_avaliacao_produto_usuario', condition=models.Q(usuario__isnull=False)),
+        ]
 
     def __str__(self):
         return f"Avaliação {self.nota}/10 - {self.tipo_avaliacao.nome} para {self.produto.nome}"
@@ -76,6 +101,93 @@ class Avaliacao(models.Model):
         if not (0 <= self.nota <= 10):
             raise ValidationError({'nota': 'A nota deve estar entre 0 e 10.'})
         
+#Cria um registro de intenções de compra
+class PedidoIntencao(models.Model):
+    class Status(models.TextChoices):
+        AGUARDANDO = 'aguardando', 'Aguardando no WhatsApp'
+        CONCLUIDA = 'concluida', 'Compra concluída'
+        CANCELADA = 'cancelada', 'Pedido cancelado'
+
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='intencoes_compra')
+    produto = models.ForeignKey('Produto', on_delete=models.CASCADE, related_name='intencoes_compra')
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.AGUARDANDO)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    observacoes_admin = models.TextField(blank=True)
+    confirmado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='intencoes_confirmadas'
+    )
+    confirmado_em = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-criado_em']
+        verbose_name = 'Intenção de compra'
+        verbose_name_plural = 'Intenções de compra'
+
+    def marcar_status(self, status, admin_user):
+        if status not in self.Status.values:
+            raise ValidationError({'status': 'Status inválido.'})
+        self.status = status
+        self.confirmado_por = admin_user
+        self.confirmado_em = timezone.now()
+        self.save(update_fields=['status', 'confirmado_por', 'confirmado_em', 'atualizado_em'])
+        self.sync_allowed_rating()
+
+    def sync_allowed_rating(self):
+        if self.status == self.Status.CONCLUIDA:
+            AllowedRating.objects.update_or_create(
+                usuario=self.usuario,
+                produto=self.produto,
+                defaults={
+                    'expires_at': timezone.now() + timedelta(days=30),
+                    'used_at': None,
+                },
+            )
+        else:
+            AllowedRating.objects.filter(
+                usuario=self.usuario,
+                produto=self.produto,
+                used_at__isnull=True,
+            ).delete()
+
+    def __str__(self):
+        return f"Intenção de {self.usuario} para {self.produto} - {self.get_status_display()}"
+
+
+class AllowedRating(models.Model):
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='permissoes_avaliacao')
+    produto = models.ForeignKey('Produto', on_delete=models.CASCADE, related_name='permissoes_avaliacao')
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('usuario', 'produto')
+        verbose_name = 'Permissão de avaliação'
+        verbose_name_plural = 'Permissões de avaliação'
+
+    @property
+    def is_expired(self):
+        return self.expires_at is not None and timezone.now() >= self.expires_at
+
+    def mark_used(self):
+        self.used_at = timezone.now()
+        self.save(update_fields=['used_at'])
+
+    def reset_usage(self):
+        self.used_at = None
+        self.save(update_fields=['used_at'])
+
+    def __str__(self):
+        status = 'expirada' if self.is_expired else 'ativa'
+        if self.used_at:
+            status = 'utilizada'
+        return f"Permissão {status} para {self.usuario} em {self.produto}"
+
 #Cria um banco de dados do suporte
 class Suporte(models.Model):
     mensagem = models.TextField()

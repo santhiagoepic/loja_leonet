@@ -3,11 +3,13 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogIn, LogOut, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "../providers/auth-context";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -64,6 +66,32 @@ export function Header() {
             <NavLink href="/acessorios" text="Acessórios" />
             <NavLink href="/contato" text="Contato" />
             <NavLink href="/suporte" text="Suporte" />
+            {user ? (
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/conta"
+                  className="flex items-center gap-2 rounded-lg border border-orange-500 px-3 py-1 text-sm font-semibold text-orange-600 transition hover:bg-orange-500 hover:text-white"
+                >
+                  <User className="h-4 w-4" />
+                  Minha conta
+                </Link>
+                <button
+                  onClick={logout}
+                  className="flex items-center gap-2 rounded-lg border border-orange-500 px-3 py-1 text-sm font-semibold text-orange-600 transition hover:bg-orange-500 hover:text-white"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sair
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/auth/login"
+                className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+              >
+                <LogIn className="h-4 w-4" />
+                Entrar
+              </Link>
+            )}
           </nav>
 
           {/* Botão do menu hamburguer - versão mobile */}
@@ -110,6 +138,39 @@ export function Header() {
                 <MobileNavLink href="/acessorios" text="Acessórios" onClick={toggleMenu} variants={itemVariants} />
                 <MobileNavLink href="/contato" text="Contato" onClick={toggleMenu} variants={itemVariants} />
                 <MobileNavLink href="/suporte" text="Suporte" onClick={toggleMenu} variants={itemVariants} />
+                <motion.div variants={itemVariants} className="px-6 pt-4 space-y-3">
+                  {user ? (
+                    <>
+                      <Link
+                        href="/conta"
+                        onClick={toggleMenu}
+                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-orange-500 px-4 py-2 font-semibold text-orange-600 transition hover:bg-orange-500 hover:text-white"
+                      >
+                        <User className="h-4 w-4" />
+                        Minha conta
+                      </Link>
+                      <button
+                        onClick={() => {
+                          toggleMenu();
+                          logout();
+                        }}
+                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-orange-500 px-4 py-2 font-semibold text-orange-600 transition hover:bg-orange-500 hover:text-white"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Sair
+                      </button>
+                    </>
+                  ) : (
+                    <Link
+                      href="/auth/login"
+                      onClick={toggleMenu}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-2 font-semibold text-white transition hover:bg-orange-600"
+                    >
+                      <LogIn className="h-4 w-4" />
+                      Entrar
+                    </Link>
+                  )}
+                </motion.div>
               </motion.div>
             </motion.div>
           )}

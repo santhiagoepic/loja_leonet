@@ -13,28 +13,63 @@ from produtos.views import (
     ProdutosAcessoriosView,
     AvaliacaoAPIView,
     SuporteAPIView,
+    PedidoIntencaoViewSet,
+)
+from produtos.admin_views import (
+    ProdutoAdminViewSet,
+    CategoriaAdminViewSet,
+    BannerAdminViewSet,
+    AvaliacaoAdminViewSet,
+    AllowedRatingAdminViewSet,
+    CustomerAdminViewSet,
+    ConfiguracaoLojaViewSet,
 )
 from rest_framework.authtoken.views import obtain_auth_token
 from django.conf import settings
 from django.conf.urls.static import static
+from accounts.urls import client_patterns, admin_patterns
+
+API_DESCRIPTION = """
+APIs segmentadas por namespace:
+
+- **/api/** → Catálogo público e intenções do cliente.
+- **/api/client/** → Autenticação do cliente (registro, login, verificação, senha, perfil).
+- **/api/admin/** → Autenticação administrativa e CRUDs internos (produtos, banners, avaliações, AllowedRating, clientes e configurações).
+
+Todas as rotas protegidas utilizam JWT Bearer (Authorization: Bearer <token>).
+"""
 
 schema_view = get_schema_view(
     openapi.Info(
         title="Loja Leonet API",
         default_version='v1',
-        description="Documentação dos endpoints públicos da Loja Leonet.",
+        description=API_DESCRIPTION,
+        contact=openapi.Contact(email="contato@lojalonet.com"),
     ),
     public=True,
     permission_classes=[permissions.AllowAny],
 )
 
-router = DefaultRouter()
-router.register(r'produtos', ProdutoViewSet, basename='produto')
-router.register(r'categorias', CategoriaViewSet, basename='categoria')
+client_router = DefaultRouter()
+client_router.register(r'produtos', ProdutoViewSet, basename='produto')
+client_router.register(r'categorias', CategoriaViewSet, basename='categoria')
+client_router.register(r'pedidos-intencao', PedidoIntencaoViewSet, basename='pedido-intencao')
+
+admin_router = DefaultRouter()
+admin_router.register(r'produtos', ProdutoAdminViewSet, basename='admin-produtos')
+admin_router.register(r'categorias', CategoriaAdminViewSet, basename='admin-categorias')
+admin_router.register(r'banners', BannerAdminViewSet, basename='admin-banners')
+admin_router.register(r'avaliacoes', AvaliacaoAdminViewSet, basename='admin-avaliacoes')
+admin_router.register(r'clientes', CustomerAdminViewSet, basename='admin-clientes')
+admin_router.register(r'allowed-ratings', AllowedRatingAdminViewSet, basename='admin-allowed-ratings')
+admin_router.register(r'configuracoes', ConfiguracaoLojaViewSet, basename='admin-configuracoes')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include(router.urls)),
+    path('api/', include(client_router.urls)),
+    path('api/client/', include(client_patterns, namespace='client-auth')),
+    path('api/admin/', include((admin_router.urls, 'admin-resources'), namespace='admin-resources')),
+    path('api/admin/', include(admin_patterns, namespace='admin-auth')),
     path('api/banners/', BannerList.as_view()),
     path('api/contato/', ContatoDetail.as_view()),
     path('api/home/', HomeView.as_view()),

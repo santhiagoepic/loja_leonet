@@ -1,13 +1,33 @@
 from rest_framework import viewsets, generics, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import Categoria, Produto, Banner, Contato, Suporte, TipoAvaliacao
-from .serializers import CategoriaSerializer, ProdutoSerializer, BannerSerializer, ContatoSerializer, AvaliacaoSerializer, Avaliacao, AvaliacaoListSerializer, SuporteSerializer
 from rest_framework.views import APIView
 from collections import defaultdict
 from django.shortcuts import get_object_or_404
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
+from django.utils import timezone
+
+from .models import (
+    Categoria,
+    Produto,
+    Banner,
+    Contato,
+    Suporte,
+    TipoAvaliacao,
+    Avaliacao,
+    PedidoIntencao,
+    AllowedRating,
+)
+from .serializers import (
+    CategoriaSerializer,
+    ProdutoSerializer,
+    BannerSerializer,
+    ContatoSerializer,
+    AvaliacaoSerializer,
+    AvaliacaoListSerializer,
+    SuporteSerializer,
+    PedidoIntencaoSerializer,
+    PedidoIntencaoAdminSerializer,
+)
 
 
 # ViewSet para Produto (com CRUD completo + ação de destaque)
@@ -94,18 +114,15 @@ class ProdutosFemininaView(APIView):
                 'tipo': tipo_nome,
                 'produtos': serializer.data
             })
-
         return Response(response_data, status=status.HTTP_200_OK)
 
-#FUNÇÃO PARA PÁGINA MASCULINA(RETORNA APENAS A CATEGORIA FEMININA SEPARADA POR ITENS)
-class ProdutosMasculinaView(APIView):
-    permission_classes = [permissions.AllowAny]
 
+class ProdutosMasculinaView(ProdutosFemininaView):
     def get(self, request):
         categoria = Categoria.objects.filter(slug='masculina').first()
         if not categoria:
             return Response({"detail": "Categoria Masculina não encontrada."}, status=status.HTTP_404_NOT_FOUND)
-        
+
         produtos = Produto.objects.filter(categoria=categoria).select_related('tipo')
         produtos_por_tipo = defaultdict(list)
 
@@ -119,18 +136,15 @@ class ProdutosMasculinaView(APIView):
                 'tipo': tipo_nome,
                 'produtos': serializer.data
             })
-
         return Response(response_data, status=status.HTTP_200_OK)
 
-#FUNÇÃO PARA PÁGINA INFANTIL(RETORNA APENAS A CATEGORIA FEMININA SEPARADA POR ITENS)
-class ProdutosInfantilView(APIView):
-    permission_classes = [permissions.AllowAny]
 
+class ProdutosInfantilView(ProdutosFemininaView):
     def get(self, request):
         categoria = Categoria.objects.filter(slug='infantil').first()
         if not categoria:
             return Response({"detail": "Categoria Infantil não encontrada."}, status=status.HTTP_404_NOT_FOUND)
-        
+
         produtos = Produto.objects.filter(categoria=categoria).select_related('tipo')
         produtos_por_tipo = defaultdict(list)
 
@@ -144,18 +158,15 @@ class ProdutosInfantilView(APIView):
                 'tipo': tipo_nome,
                 'produtos': serializer.data
             })
-
         return Response(response_data, status=status.HTTP_200_OK)
 
-#FUNÇÃO PARA PÁGINA DE ASSESSORIOS(RETORNA APENAS A CATEGORIA FEMININA SEPARADA POR ITENS)
-class ProdutosAcessoriosView(APIView):
-    permission_classes = [permissions.AllowAny]
 
+class ProdutosAcessoriosView(ProdutosFemininaView):
     def get(self, request):
         categoria = Categoria.objects.filter(slug='acessorios').first()
         if not categoria:
             return Response({"detail": "Categoria Acessórios não encontrada."}, status=status.HTTP_404_NOT_FOUND)
-        
+
         produtos = Produto.objects.filter(categoria=categoria).select_related('tipo')
         produtos_por_tipo = defaultdict(list)
 
@@ -169,249 +180,159 @@ class ProdutosAcessoriosView(APIView):
                 'tipo': tipo_nome,
                 'produtos': serializer.data
             })
-
         return Response(response_data, status=status.HTTP_200_OK)
-    
-# View para criar uma nova avaliação
-class AvaliacaoAPIView(APIView):
-    @method_decorator(csrf_exempt)
-    def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
 
-    def get(self, request):
-        produto_id = request.query_params.get('produto_id')
-        print(f"Produto ID recebido pela query string: {produto_id}")  # Debugging line
-        
+
+class AvaliacaoAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get(self, request, produto_id=None, pk=None):
+        queryset = Avaliacao.objects.select_related('tipo_avaliacao', 'usuario')
+
+        if pk is not None:
+            avaliacao = get_object_or_404(queryset, pk=pk)
+            return Response(AvaliacaoSerializer(avaliacao).data)
+
+        produto_id = produto_id or request.query_params.get('produto_id')
         if produto_id:
-            avaliacoes = Avaliacao.objects.filter(
-                tipo_avaliacao_id=produto_id
-            ).order_by('-data')
-        else:
-            avaliacoes = Avaliacao.objects.all().order_by('-data')
-            
-        serializer = AvaliacaoListSerializer(avaliacoes, many=True)
+            queryset = queryset.filter(produto_id=produto_id)
+
+        serializer = AvaliacaoListSerializer(queryset, many=True)
         return Response(serializer.data)
 
-    def post(self, request):
+    def post(self, request, produto_id=None):
+        if not request.user.is_authenticated:
+            return Response({'detail': 'Autenticação necessária.'}, status=status.HTTP_401_UNAUTHORIZED)
+
         data = request.data
         errors = {}
 
-        # Validação dos campos obrigatórios
-        required_fields = ['produto_id', 'tipo_avaliacao_id', 'nota', 'foto_produto', 'nome_completo']
-        for field in required_fields:
-            if field not in data or not data.get(field):
-                errors[field] = ['Este campo é obrigatório.']
+        produto_id = produto_id or data.get('produto_id')
+        tipo_avaliacao_id = data.get('tipo_avaliacao_id')
+        nota = data.get('nota')
 
-        # Validação da nota
-        try:
-            nota = int(data.get('nota'))
-            if nota < 0 or nota > 10:
-                errors['nota'] = ['A nota deve estar entre 0 e 10.']
-        except (TypeError, ValueError):
-            errors['nota'] = ['A nota deve ser um número inteiro.']
+        if not produto_id:
+            errors['produto_id'] = ['Este campo é obrigatório.']
+        if not tipo_avaliacao_id:
+            errors['tipo_avaliacao_id'] = ['Este campo é obrigatório.']
+        if nota is None:
+            errors['nota'] = ['Este campo é obrigatório.']
 
-        # Validação do Produto
-        try:
-            produto = Produto.objects.get(pk=data.get('produto_id'))
-        except Produto.DoesNotExist:
-            errors['produto_id'] = ['Produto com esse ID não existe.']
-
-        # Validação do TipoAvaliacao
-        try:
-            tipo_avaliacao = TipoAvaliacao.objects.get(pk=data.get('tipo_avaliacao_id'))
-        except TipoAvaliacao.DoesNotExist:
-            errors['tipo_avaliacao_id'] = ['TipoAvaliacao com esse ID não existe.']
-
-        # Se houver erros, retorna 400
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # Extrair demais dados
-        nome_completo = data.get('nome_completo')
-        comentario = data.get('comentario', '')  # opcional
-        foto_produto = request.FILES.get('foto_produto')
+        produto = get_object_or_404(Produto, pk=produto_id)
+        tipo_avaliacao = get_object_or_404(TipoAvaliacao, pk=tipo_avaliacao_id)
 
-        # Criar e salvar a Avaliacao
-        avaliacao = Avaliacao(
+        try:
+            nota = int(nota)
+        except (TypeError, ValueError):
+            return Response({'nota': ['A nota deve ser um número inteiro.']}, status=status.HTTP_400_BAD_REQUEST)
+
+        if nota < 0 or nota > 10:
+            return Response({'nota': ['A nota deve estar entre 0 e 10.']}, status=status.HTTP_400_BAD_REQUEST)
+
+        if Avaliacao.objects.filter(produto=produto, usuario=request.user).exists():
+            return Response({'detail': 'Você já avaliou este produto.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        foto_produto = request.FILES.get('foto_produto')
+        if not foto_produto:
+            return Response({'foto_produto': ['Envie uma imagem do produto recebido.']}, status=status.HTTP_400_BAD_REQUEST)
+
+        allowed_rating = AllowedRating.objects.filter(
+            usuario=request.user,
+            produto=produto,
+            used_at__isnull=True,
+        ).first()
+
+        if not allowed_rating:
+            return Response(
+                {'detail': 'Finalize a compra para liberar a avaliação deste produto.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if allowed_rating.is_expired:
+            allowed_rating.delete()
+            return Response(
+                {'detail': 'O prazo para avaliar este produto expirou.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        nome_completo = data.get('nome_completo') or request.user.get_full_name() or request.user.email or request.user.username
+        comentario = data.get('comentario', '')
+
+        avaliacao = Avaliacao.objects.create(
             produto=produto,
             tipo_avaliacao=tipo_avaliacao,
             nota=nota,
             nome_completo=nome_completo,
             comentario=comentario,
-            foto_produto=foto_produto
+            foto_produto=foto_produto,
+            usuario=request.user,
         )
-        avaliacao.save()
 
-        # Retorno simples
-        return Response({
-            'id': avaliacao.id,
-            'produto_id': produto.id,
-            'tipo_avaliacao_id': tipo_avaliacao.id,
-            'nota': avaliacao.nota,
-            'nome_completo': avaliacao.nome_completo,
-            'comentario': avaliacao.comentario,
-            'foto_produto_url': avaliacao.foto_produto.url if avaliacao.foto_produto else None,
-            'data': avaliacao.data
-        }, status=status.HTTP_201_CREATED)
-        data = request.data
-        errors = {}
+        allowed_rating.mark_used()
 
-        # Validação dos campos obrigatórios
-        required_fields = ['produto_id', 'tipo_avaliacao_id', 'nota', 'foto_produto', 'nome_completo']
-        for field in required_fields:
-            if field not in data or not data.get(field):
-                errors[field] = ['Este campo é obrigatório.']
-
-        # Validação da nota
-        try:
-            nota = int(data.get('nota'))
-            if nota < 0 or nota > 10:
-                errors['nota'] = ['A nota deve estar entre 0 e 10.']
-        except (TypeError, ValueError):
-            errors['nota'] = ['A nota deve ser um número inteiro.']
-
-        # Validação do Produto
-        try:
-            produto = Produto.objects.get(pk=data.get('produto_id'))
-        except Produto.DoesNotExist:
-            errors['produto_id'] = ['Produto com esse ID não existe.']
-
-        # Validação do TipoAvaliacao
-        try:
-            tipo_avaliacao = TipoAvaliacao.objects.get(pk=data.get('tipo_avaliacao_id'))
-        except TipoAvaliacao.DoesNotExist:
-            errors['tipo_avaliacao_id'] = ['TipoAvaliacao com esse ID não existe.']
-
-        # Se houver erros, retorna 400
-        if errors:
-            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
-
-        # Extrair demais dados
-        nome_completo = data.get('nome_completo')
-        comentario = data.get('comentario', '')  # opcional
-        foto_produto = request.FILES.get('foto_produto')
-
-        # Criar e salvar a Avaliacao
-        avaliacao = Avaliacao(
-            produto=produto,
-            tipo_avaliacao=tipo_avaliacao,
-            nota=nota,
-            nome_completo=nome_completo,
-            comentario=comentario,
-            foto_produto=foto_produto
-        )
-        avaliacao.save()
-
-        # Retorno simples
-        return Response({
-            'id': avaliacao.id,
-            'produto_id': produto.id,
-            'tipo_avaliacao_id': tipo_avaliacao.id,
-            'nota': avaliacao.nota,
-            'nome_completo': avaliacao.nome_completo,
-            'comentario': avaliacao.comentario,
-            'foto_produto_url': avaliacao.foto_produto.url if avaliacao.foto_produto else None,
-            'data': avaliacao.data
-        }, status=status.HTTP_201_CREATED)
-        data = request.data
-        errors = {}
-
-        # Validação dos campos obrigatórios
-        required_fields = ['tipo_avaliacao_id', 'nota', 'foto_produto', 'nome_completo']
-        for field in required_fields:
-            if field not in data or not data.get(field):
-                errors[field] = ['Este campo é obrigatório.']
-
-        # Validação específica da nota
-        try:
-            nota = int(data.get('nota'))
-            if nota < 0 or nota > 10:
-                errors['nota'] = ['A nota deve estar entre 0 e 10.']
-        except (TypeError, ValueError):
-            errors['nota'] = ['A nota deve ser um número inteiro.']
-
-        # Validação do TipoAvaliacao
-        try:
-            tipo_avaliacao = TipoAvaliacao.objects.get(pk=data.get('tipo_avaliacao_id'))
-        except TipoAvaliacao.DoesNotExist:
-            errors['tipo_avaliacao_id'] = ['TipoAvaliacao com esse ID não existe.']
-
-        # Se houver erros, retorna 400
-        if errors:
-            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
-
-        # Extração dos dados restantes
-        nome_completo = data.get('nome_completo')
-        comentario = data.get('comentario', '')  # opcional
-        foto_produto = request.FILES.get('foto_produto')
-        produto = Produto.objects.get(pk=data.get('produto_id'))
-
-        # Criar e salvar a Avaliacao
-        avaliacao = Avaliacao(
-            produto=produto,
-            tipo_avaliacao=tipo_avaliacao,
-            nota=nota,
-            nome_completo=nome_completo,
-            comentario=comentario,
-            foto_produto=foto_produto
-        )
-        avaliacao.save()
-
-        # Retorna a representação do objeto criado
-        return Response({
-            'id': avaliacao.id,
-            'tipo_avaliacao_id': tipo_avaliacao.id,
-            'nota': avaliacao.nota,
-            'nome_completo': avaliacao.nome_completo,
-            'comentario': avaliacao.comentario,
-            'foto_produto_url': avaliacao.foto_produto.url if avaliacao.foto_produto else None,
-            'data': avaliacao.data
-        }, status=status.HTTP_201_CREATED)
+        return Response(AvaliacaoSerializer(avaliacao).data, status=status.HTTP_201_CREATED)
 
     def patch(self, request, pk=None):
+        if not request.user.is_authenticated:
+            return Response({'detail': 'Autenticação necessária.'}, status=status.HTTP_401_UNAUTHORIZED)
+        if not request.user.is_staff:
+            return Response({'detail': 'Acesso restrito.'}, status=status.HTTP_403_FORBIDDEN)
         if not pk:
-            return Response({'erro': 'ID da avaliação é obrigatório para atualização parcial.'}, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response({'detail': 'ID da avaliação é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
+
         avaliacao = get_object_or_404(Avaliacao, pk=pk)
-        serializer = AvaliacaoSerializer(avaliacao, data=request.data, partial=True)  # <- partial=True é a chave
-        
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        compra_verificada = request.data.get('compra_verificada')
+        comentario = request.data.get('comentario')
+        nota = request.data.get('nota')
+
+        if compra_verificada is not None:
+            compra_verificada_value = str(compra_verificada).lower() in ['true', '1', 'sim']
+            if compra_verificada_value:
+                possui_compra = PedidoIntencao.objects.filter(
+                    usuario=avaliacao.usuario,
+                    produto=avaliacao.produto,
+                    status=PedidoIntencao.Status.CONCLUIDA
+                ).exists()
+                if not possui_compra:
+                    return Response(
+                        {'detail': 'Não há compra concluída registrada para esta avaliação.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                avaliacao.compra_verificada = True
+                avaliacao.verificado_por = request.user
+                avaliacao.verificado_em = timezone.now()
+            else:
+                avaliacao.compra_verificada = False
+                avaliacao.verificado_por = None
+                avaliacao.verificado_em = None
+
+        if comentario is not None:
+            avaliacao.comentario = comentario
+
+        if nota is not None:
+            try:
+                nota_int = int(nota)
+            except (TypeError, ValueError):
+                return Response({'nota': ['A nota deve ser um número inteiro.']}, status=status.HTTP_400_BAD_REQUEST)
+            if nota_int < 0 or nota_int > 10:
+                return Response({'nota': ['A nota deve estar entre 0 e 10.']}, status=status.HTTP_400_BAD_REQUEST)
+            avaliacao.nota = nota_int
+
+        avaliacao.save()
+        return Response(AvaliacaoSerializer(avaliacao).data)
 
     def delete(self, request, pk=None):
-        if pk:
-            avaliacao = get_object_or_404(Avaliacao, pk=pk)
-            avaliacao.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        
-        # Método alternativo por nome
-        avaliacao_id = request.data.get('id')
-        nome = request.data.get('nome_completo')
-        
-        if not avaliacao_id or not nome:
-            return Response(
-                {'erro': 'Informe o ID da avaliação e o nome completo.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
-        try:
-            avaliacao = Avaliacao.objects.get(pk=avaliacao_id)
-            if avaliacao.nome_completo.strip().lower() != nome.strip().lower():
-                return Response(
-                    {'erro': 'Nome incorreto. Você não pode deletar esta avaliação.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            avaliacao.delete()
-            return Response({'mensagem': 'Avaliação deletada com sucesso.'})
-        except Avaliacao.DoesNotExist:
-            return Response(
-                {'erro': 'Avaliação não encontrada.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
+        if not request.user.is_authenticated:
+            return Response({'detail': 'Autenticação necessária.'}, status=status.HTTP_401_UNAUTHORIZED)
+        avaliacao = get_object_or_404(Avaliacao, pk=pk)
+        if not (request.user.is_staff or avaliacao.usuario == request.user):
+            return Response({'detail': 'Sem permissão para remover esta avaliação.'}, status=status.HTTP_403_FORBIDDEN)
+        avaliacao.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class SuporteAPIView(APIView):
     def get(self, request):
@@ -425,3 +346,62 @@ class SuporteAPIView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PedidoIntencaoViewSet(viewsets.ModelViewSet):
+    queryset = PedidoIntencao.objects.select_related('usuario', 'produto')
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if self.request.user.is_staff:
+            return qs
+        return qs.filter(usuario=self.request.user)
+
+    def get_serializer_class(self):
+        if self.request.user.is_authenticated and self.request.user.is_staff:
+            return PedidoIntencaoAdminSerializer
+        return PedidoIntencaoSerializer
+
+    def create(self, request, *args, **kwargs):
+        input_serializer = PedidoIntencaoSerializer(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+        produto = input_serializer.validated_data['produto']
+
+        intencao = PedidoIntencao.objects.create(
+            usuario=request.user,
+            produto=produto,
+        )
+
+        output_serializer = self.get_serializer(intencao)
+        headers = self.get_success_headers(output_serializer.data)
+        return Response(output_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def update(self, request, *args, **kwargs):
+        if not request.user.is_staff:
+            return Response({'detail': 'Apenas administradores podem atualizar intenções.'}, status=status.HTTP_403_FORBIDDEN)
+
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+
+        status_value = serializer.validated_data.get('status', instance.status)
+        observacoes = serializer.validated_data.get('observacoes_admin', instance.observacoes_admin)
+
+        instance.status = status_value
+        instance.observacoes_admin = observacoes
+        instance.confirmado_por = request.user
+        instance.confirmado_em = timezone.now()
+        instance.save(update_fields=['status', 'observacoes_admin', 'confirmado_por', 'confirmado_em', 'atualizado_em'])
+        instance.sync_allowed_rating()
+
+        return Response(self.get_serializer(instance).data)
+
+    def destroy(self, request, *args, **kwargs):
+        if not request.user.is_staff:
+            return Response({'detail': 'Apenas administradores podem remover intenções.'}, status=status.HTTP_403_FORBIDDEN)
+        instance = self.get_object()
+        AllowedRating.objects.filter(usuario=instance.usuario, produto=instance.produto, used_at__isnull=True).delete()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
