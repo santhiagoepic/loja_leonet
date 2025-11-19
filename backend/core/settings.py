@@ -15,17 +15,19 @@ from datetime import timedelta
 import os
 import cloudinary
 from dotenv import load_dotenv
-load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from backend/.env regardless of the current working directory
+load_dotenv(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-v@9f*lb4=78s!6gm1%!s&$@5oxwt6&3ko_%lt20(pqi_=mfn9^'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-placeholder')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
