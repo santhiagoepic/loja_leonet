@@ -1,6 +1,6 @@
 # 🛍️ Loja Leonet
 
-Projeto **fullstack** para uma loja virtual, utilizando **Django** no backend e **Next.js** no frontend.
+Projeto **fullstack** para uma loja virtual, utilizando **Django** no backend e **Next.js** no frontend. A plataforma oferece catálogo completo, intenções de compra, central de suporte autenticada e painel administrativo.
 
 ---
 
@@ -20,6 +20,7 @@ public/
 package.json
 next.config.mjs
 ```
+
 ---
 
 ## ⚙️ Backend (Django)
@@ -42,6 +43,15 @@ python manage.py runserver
 ```
 
 O backend rodará em: <http://127.0.0.1:8000/>
+
+### ✅ Testes automatizados
+
+```bash
+cd backend
+python manage.py test produtos
+```
+
+> Esses testes cobrem o fluxo completo de intenções, AllowedRatings e CRUD administrativo.
 
 ### 🔐 Autenticação e perfis
 
@@ -67,34 +77,29 @@ O backend rodará em: <http://127.0.0.1:8000/>
 
 ### 🎨 Frontend (Next.js + React)
 
-Framework: Next.js
-
-Principais páginas:
-
-- /feminino
-- /masculino
-- /infantil
-- /acessorios
-
-Consome as APIs fornecidas pelo backend
+- Framework: Next.js 14 (App Router) + TailwindCSS
+- Contexto de autenticação com JWT (clientes logados carregam tokens no `AuthProvider`)
+- Páginas principais: `/`, `/feminino`, `/masculino`, `/infantil`, `/acessorios`, `/suporte`, `/conta`
+- Nova central de suporte exibe métricas pessoais, histórico de chamados e formulário inteligente
 
 🚀 Como rodar o frontend
 
 ```bash
-frontend
+cd frontend
 npm install
 npm run dev
 ```
 
 O frontend rodará em: <http://localhost:3000/>
 
-### 🛠️ Funcionalidades
+### 🛠️ Funcionalidades em destaque
 
-- Listagem de produtos por categoria e tipo
-- Exibição de destaques, banners e informações de contato
-- Sistema de avaliações de produtos (CRUD completo)
-- Suporte ao cliente integrado
-- Integração de imagens via Cloudinary
+- **Catálogo inteligente** por categoria/tipo com banners e destaques.
+- **Intenções de compra** com fluxo cliente → staff, integradas ao AllowedRating.
+- **Central de suporte autenticada**: cada cliente vê apenas seus chamados, abre tickets com preenchimento automático e acompanha métricas pessoais.
+- **Sistema de avaliações verificado** com upload obrigatório de foto e expiração configurável dos tokens.
+- **Painel administrativo** completo (produtos, banners, clientes, AllowedRatings, pedidos) via `/api/admin/*`.
+- **Integração com Cloudinary** para imagens e envio de e-mails transacionais.
 
 ### 🌐 APIs Disponíveis
 
@@ -117,7 +122,7 @@ O frontend rodará em: <http://localhost:3000/>
     - `POST /api/avaliacoes/` (requer AllowedRating ativo)
     - `PATCH|DELETE /api/avaliacoes/<id>/` (staff/autor)
 - **Suporte ao Cliente**
-    - `GET|POST /api/suporte/`
+    - `GET|POST /api/suporte/` (autenticado, retorna chamados do usuário)
 - **Autenticação do Cliente**
     - `POST /api/client/auth/register/`
     - `POST /api/client/auth/login/`
@@ -146,6 +151,10 @@ O frontend rodará em: <http://localhost:3000/>
 - Configure corretamente as credenciais do Cloudinary no backend.
 - O frontend espera que o backend esteja rodando em <http://127.0.0.1:8000>.
 - Documentação Swagger disponível em <http://127.0.0.1:8000/swagger/> (use "Authorize" com Bearer JWT).
+
+### 📄 Recursos adicionais
+
+- Documento de apresentação para a faculdade: veja `docs/apresentacao-loja-leonet.md` (contém roteiro de pitch e destaques visuais).
 
 ### 👨‍💻 Desenvolvido por
 

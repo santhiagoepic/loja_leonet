@@ -39,15 +39,15 @@ export function Footer() {
           <ul className="mt-4 space-y-3 text-sm text-slate-300">
             <li className="flex items-start gap-3">
               <Mail className="h-4 w-4 text-emerald-400" />
-              <span>atendimento@leonetemodas.com</span>
+              <span>Leoneth@loja.com</span>
             </li>
             <li className="flex items-start gap-3">
               <Phone className="h-4 w-4 text-emerald-400" />
-              <span>+55(63) 98410-7523</span>
+              <span>+55 (63) 98410-7523</span>
             </li>
             <li className="flex items-start gap-3">
               <MapPin className="h-4 w-4 text-emerald-400" />
-              <span>Rua das Flores, 123 - Centro, São Paulo</span>
+              <span>R. Maranhense, 359, Sítio Novo do Tocantins - TO, 77940-000</span>
             </li>
           </ul>
         </div>
