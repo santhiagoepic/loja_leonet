@@ -59,10 +59,17 @@ class UserProfileAdmin(admin.ModelAdmin):
 	search_fields = ('user__email', 'user__username', 'phone_number')
 
 
+@admin.register(Suporte)
+class SuporteAdmin(admin.ModelAdmin):
+	list_display = ('contato', 'tipo_suporte', 'usuario', 'produto', 'created_at')
+	list_filter = ('tipo_suporte', 'created_at')
+	search_fields = ('contato', 'email', 'mensagem', 'usuario__email')
+	readonly_fields = ('created_at',)
+
+
 admin.site.register(Categoria)
 admin.site.register(Produto)
 admin.site.register(Banner)
 admin.site.register(Contato)
 admin.site.register(TipoItem)
 admin.site.register(TipoAvaliacao)
-admin.site.register(Suporte)

@@ -195,11 +195,28 @@ class AllowedRating(models.Model):
 #Cria um banco de dados do suporte
 class Suporte(models.Model):
     mensagem = models.TextField()
-    produto = models.ForeignKey('Produto', on_delete=models.CASCADE, related_name='suportes')
+    produto = models.ForeignKey(
+        'Produto',
+        on_delete=models.SET_NULL,
+        related_name='suportes',
+        null=True,
+        blank=True,
+    )
     tipo_suporte = models.CharField(max_length=100)
     contato = models.CharField(max_length=100)
     telefone = models.CharField(max_length=100)
-    email = models.EmailField(max_length=20)
+    email = models.EmailField(max_length=100)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='chamados_suporte',
+        null=True,
+        blank=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
 
     def __str__(self):
         return f"{self.contato} - {self.tipo_suporte}"

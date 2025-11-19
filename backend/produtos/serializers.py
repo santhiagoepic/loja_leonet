@@ -18,6 +18,13 @@ from .models import (
 User = get_user_model()
 
 
+class CloudinaryImageField(serializers.ImageField):
+    def to_internal_value(self, data):
+        if isinstance(data, str):
+            return data
+        return super().to_internal_value(data)
+
+
 class UserPublicSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -50,7 +57,7 @@ class ProdutoSerializer(serializers.ModelSerializer):
 
 
 class ProdutoAdminSerializer(serializers.ModelSerializer):
-    imagem = serializers.ImageField(required=False, allow_null=True)
+    imagem = CloudinaryImageField(required=False, allow_null=True)
     categoria = CategoriaSerializer(read_only=True)
     categoria_id = serializers.PrimaryKeyRelatedField(
         queryset=Categoria.objects.all(), source='categoria', write_only=True
@@ -68,7 +75,7 @@ class ProdutoAdminSerializer(serializers.ModelSerializer):
         ]
 
 class BannerSerializer(serializers.ModelSerializer):
-    imagem = serializers.ImageField(required=False, allow_null=True)
+    imagem = CloudinaryImageField(required=False, allow_null=True)
 
     class Meta:
         model = Banner
@@ -106,8 +113,8 @@ class AvaliacaoSerializer(serializers.ModelSerializer):
         read_only_fields = ('produto', 'usuario', 'compra_verificada', 'verificado_por', 'verificado_em', 'data')
 
     def validate_nota(self, value):
-        if not 1 <= value <= 5:
-            raise serializers.ValidationError("A nota deve estar entre 1 e 5.")
+        if not 1 <= value <= 10:
+            raise serializers.ValidationError("A nota deve estar entre 1 e 10.")
         return value
 
 class AvaliacaoListSerializer(serializers.ModelSerializer):
@@ -123,9 +130,31 @@ class AvaliacaoListSerializer(serializers.ModelSerializer):
         ]
 
 class SuporteSerializer(serializers.ModelSerializer):
+    usuario = UserPublicSerializer(read_only=True)
+    produto_nome = serializers.CharField(source='produto.nome', read_only=True)
+    produto_id = serializers.PrimaryKeyRelatedField(
+        queryset=Produto.objects.all(),
+        source='produto',
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
+
     class Meta:
         model = Suporte
-        fields = '__all__'
+        fields = [
+            'id',
+            'mensagem',
+            'tipo_suporte',
+            'contato',
+            'telefone',
+            'email',
+            'produto_nome',
+            'produto_id',
+            'usuario',
+            'created_at',
+        ]
+        read_only_fields = ('id', 'produto_nome', 'usuario', 'created_at')
 
 
 class PedidoIntencaoSerializer(serializers.ModelSerializer):

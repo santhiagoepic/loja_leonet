@@ -229,8 +229,8 @@ class AvaliacaoAPIView(APIView):
         except (TypeError, ValueError):
             return Response({'nota': ['A nota deve ser um número inteiro.']}, status=status.HTTP_400_BAD_REQUEST)
 
-        if nota < 1 or nota > 5:
-            return Response({'nota': ['A nota deve estar entre 1 e 5.']}, status=status.HTTP_400_BAD_REQUEST)
+        if nota < 1 or nota > 10:
+            return Response({'nota': ['A nota deve estar entre 1 e 10.']}, status=status.HTTP_400_BAD_REQUEST)
 
         if Avaliacao.objects.filter(produto=produto, usuario=request.user).exists():
             return Response({'detail': 'Você já avaliou este produto.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -318,8 +318,8 @@ class AvaliacaoAPIView(APIView):
                 nota_int = int(nota)
             except (TypeError, ValueError):
                 return Response({'nota': ['A nota deve ser um número inteiro.']}, status=status.HTTP_400_BAD_REQUEST)
-            if nota_int < 1 or nota_int > 5:
-                return Response({'nota': ['A nota deve estar entre 1 e 5.']}, status=status.HTTP_400_BAD_REQUEST)
+            if nota_int < 1 or nota_int > 10:
+                return Response({'nota': ['A nota deve estar entre 1 e 10.']}, status=status.HTTP_400_BAD_REQUEST)
             avaliacao.nota = nota_int
 
         avaliacao.save()
@@ -335,17 +335,21 @@ class AvaliacaoAPIView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 class SuporteAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def get(self, request):
-        suportes = Suporte.objects.all()
+        suportes = Suporte.objects.select_related('usuario', 'produto')
+        if not request.user.is_staff:
+            suportes = suportes.filter(usuario=request.user)
         serializer = SuporteSerializer(suportes, many=True)
         return Response(serializer.data)
 
     def post(self, request):
         serializer = SuporteSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        suporte = serializer.save(usuario=request.user)
+        output_serializer = SuporteSerializer(suporte)
+        return Response(output_serializer.data, status=status.HTTP_201_CREATED)
 
 
 class PedidoIntencaoViewSet(viewsets.ModelViewSet):
