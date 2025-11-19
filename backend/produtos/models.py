@@ -98,8 +98,8 @@ class Avaliacao(models.Model):
         return f"Avaliação {self.nota}/10 - {self.tipo_avaliacao.nome} para {self.produto.nome}"
 
     def clean(self):
-        if not (0 <= self.nota <= 10):
-            raise ValidationError({'nota': 'A nota deve estar entre 0 e 10.'})
+        if not (1 <= self.nota <= 5):
+            raise ValidationError({'nota': 'A nota deve estar entre 1 e 5.'})
         
 #Cria um registro de intenções de compra
 class PedidoIntencao(models.Model):
@@ -122,6 +122,10 @@ class PedidoIntencao(models.Model):
         related_name='intencoes_confirmadas'
     )
     confirmado_em = models.DateTimeField(null=True, blank=True)
+    nome_contato = models.CharField(max_length=255, blank=True)
+    telefone_contato = models.CharField(max_length=50, blank=True)
+    endereco_entrega = models.CharField(max_length=255, blank=True)
+    observacoes_cliente = models.TextField(blank=True)
 
     class Meta:
         ordering = ['-criado_em']

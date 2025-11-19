@@ -42,12 +42,15 @@ class TipoItemSerializer(serializers.ModelSerializer):
         model = TipoItem
         fields = ['id', 'nome', 'slug']
 class ProdutoSerializer(serializers.ModelSerializer):
+    imagem = serializers.ImageField(read_only=True)
+
     class Meta:
         model = Produto
         fields = ['id', 'nome', 'descricao', 'preco', 'imagem', 'categoria', 'estoque', 'em_destaque', 'link_whatsapp']
 
 
 class ProdutoAdminSerializer(serializers.ModelSerializer):
+    imagem = serializers.ImageField(required=False, allow_null=True)
     categoria = CategoriaSerializer(read_only=True)
     categoria_id = serializers.PrimaryKeyRelatedField(
         queryset=Categoria.objects.all(), source='categoria', write_only=True
@@ -65,6 +68,8 @@ class ProdutoAdminSerializer(serializers.ModelSerializer):
         ]
 
 class BannerSerializer(serializers.ModelSerializer):
+    imagem = serializers.ImageField(required=False, allow_null=True)
+
     class Meta:
         model = Banner
         fields = ['id', 'imagem', 'ativo']
@@ -100,10 +105,10 @@ class AvaliacaoSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ('produto', 'usuario', 'compra_verificada', 'verificado_por', 'verificado_em', 'data')
 
-    # def validate_nota(self, value):
-    #     if not 0 <= value <= 10:
-    #         raise serializers.ValidationError("A nota deve estar entre 0 e 10.")
-    #     return value
+    def validate_nota(self, value):
+        if not 1 <= value <= 5:
+            raise serializers.ValidationError("A nota deve estar entre 1 e 5.")
+        return value
 
 class AvaliacaoListSerializer(serializers.ModelSerializer):
     tipo_avaliacao = TipoAvaliacaoSerializer()
@@ -135,7 +140,8 @@ class PedidoIntencaoSerializer(serializers.ModelSerializer):
         model = PedidoIntencao
         fields = (
             'id', 'usuario', 'produto', 'produto_id', 'status', 'criado_em',
-            'atualizado_em', 'observacoes_admin', 'confirmado_por', 'confirmado_em'
+            'atualizado_em', 'observacoes_admin', 'confirmado_por', 'confirmado_em',
+            'nome_contato', 'telefone_contato', 'endereco_entrega', 'observacoes_cliente'
         )
         read_only_fields = (
             'usuario', 'status', 'criado_em', 'atualizado_em', 'observacoes_admin', 'confirmado_por', 'confirmado_em',

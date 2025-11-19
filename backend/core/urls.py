@@ -23,6 +23,9 @@ from produtos.admin_views import (
     AllowedRatingAdminViewSet,
     CustomerAdminViewSet,
     ConfiguracaoLojaViewSet,
+    TipoItemAdminViewSet,
+    TipoAvaliacaoAdminViewSet,
+    PedidoIntencaoAdminViewSet,
 )
 from rest_framework.authtoken.views import obtain_auth_token
 from django.conf import settings
@@ -30,13 +33,29 @@ from django.conf.urls.static import static
 from accounts.urls import client_patterns, admin_patterns
 
 API_DESCRIPTION = """
-APIs segmentadas por namespace:
+### Visão geral
 
-- **/api/** → Catálogo público e intenções do cliente.
-- **/api/client/** → Autenticação do cliente (registro, login, verificação, senha, perfil).
-- **/api/admin/** → Autenticação administrativa e CRUDs internos (produtos, banners, avaliações, AllowedRating, clientes e configurações).
+As rotas foram organizadas em três zonas principais para deixar claro o fluxo entre loja, clientes autenticados e equipe interna.
 
-Todas as rotas protegidas utilizam JWT Bearer (Authorization: Bearer <token>).
+| Namespace | Escopo | Exemplos |
+|-----------|--------|----------|
+| `/api/` | Catálogo público e intenções iniciadas pelo cliente | `GET /api/produtos/`, `POST /api/pedidos-intencao/` |
+| `/api/client/` | Autenticação e utilidades do cliente | `POST /api/client/auth/register/`, `GET /api/client/me/` |
+| `/api/admin/` | Autenticação e CRUD administrativos (somente staff) | `POST /api/admin/auth/login/`, `POST /api/admin/produtos/` |
+
+### Autenticação
+
+- **JWT (Bearer)** em todas as rotas protegidas. Informe `Authorization: Bearer <token>`.
+- Clientes podem gerar tokens via `/api/client/auth/login/`; administradores via `/api/admin/auth/login/`.
+- Refresh disponível em ambos os namespaces (`/auth/refresh/`).
+
+### Recursos administrativos expostos
+
+- Produtos, categorias, tipos de item, banners e configurações da loja.
+- Avaliações com marcação de compra verificada e AllowedRating.
+- Clientes (perfil + telefone) e intenções de compra com sincronização automática de permissão para avaliação.
+
+Esta documentação reflete todas as rotas acima e pode ser utilizada como referência do contrato público.
 """
 
 schema_view = get_schema_view(
@@ -63,6 +82,9 @@ admin_router.register(r'avaliacoes', AvaliacaoAdminViewSet, basename='admin-aval
 admin_router.register(r'clientes', CustomerAdminViewSet, basename='admin-clientes')
 admin_router.register(r'allowed-ratings', AllowedRatingAdminViewSet, basename='admin-allowed-ratings')
 admin_router.register(r'configuracoes', ConfiguracaoLojaViewSet, basename='admin-configuracoes')
+admin_router.register(r'tipos', TipoItemAdminViewSet, basename='admin-tipos')
+admin_router.register(r'tipos-avaliacao', TipoAvaliacaoAdminViewSet, basename='admin-tipos-avaliacao')
+admin_router.register(r'pedidos-intencao', PedidoIntencaoAdminViewSet, basename='admin-pedidos-intencao')
 
 urlpatterns = [
     path('admin/', admin.site.urls),

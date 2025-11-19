@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { apiUrl } from "../../lib/api";
+import { buildImageUrl } from "../lib/images";
 
 export default function Banners() {
   const [banners, setBanners] = useState([]);
@@ -32,23 +33,26 @@ export default function Banners() {
   if (banners.length === 0) return null;
 
   return (
-    <div className="relative w-full h-[450px] overflow-hidden mb-8">
-      {banners.map((banner, i) => (
-        <div
-          key={banner.id}
-          className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
-            i === indexAtual ? "opacity-100" : "opacity-0"
-          }`}
-        >
-          <Image
-            src={`${imageBaseUrl}${banner.imagem}`}
-            alt={`Banner ${banner.id}`}
-            fill
-            className="object-cover"
-            priority={i === 0}
-          />
-        </div>
-      ))}
+    <div className="relative mb-8 w-full overflow-hidden rounded-3xl bg-gray-100 shadow-lg">
+      <div className="relative aspect-[4/3] sm:aspect-[16/7]">
+        {banners.map((banner, i) => (
+          <div
+            key={banner.id}
+            className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+              i === indexAtual ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <Image
+              src={buildImageUrl(banner.imagem, imageBaseUrl)}
+              alt={`Banner ${banner.id}`}
+              fill
+              className="object-cover"
+              priority={i === 0}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1200px"
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,49 +1,11 @@
-"use client";
+import CategoryPageTemplate from "../components/CategoryPageTemplate";
 
-import { useEffect, useState } from "react";
-
-import ListarCategoria from "../components/listarCategoria";
-import { apiUrl } from "../../lib/api";
-
-export default function Acessorios() {
-  const [produtosPorTipo, setProdutosPorTipo] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const fetchProdutos = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch(apiUrl("/api/produtos_acessorios/"));
-        if (!response.ok) throw new Error("Falha ao carregar os produtos");
-
-        const data = await response.json();
-        setProdutosPorTipo(data);
-      } catch (err) {
-        setError(
-          "Erro ao carregar produtos. Por favor, tente novamente mais tarde."
-        );
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchProdutos();
-  }, []);
-
-  // Base URL para as imagens
-  const imageBaseUrl = "https://res.cloudinary.com/dzlm6jkhv/";
-
-  // Achatar todos os produtos
-  const todosProdutos = produtosPorTipo.flatMap((tipo) => tipo.produtos);
-
+export default function AcessoriosPage() {
   return (
-    <ListarCategoria
-      todosProdutos={todosProdutos}
-      isLoading={isLoading}
-      error={error}
-      titulo={"Acessórios"}
+    <CategoryPageTemplate
+      endpoint="/api/produtos_acessorios/"
+      category="acessorios"
+      title="Acessórios"
     />
   );
 }

@@ -1,11 +1,15 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core import mail
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from accounts.email import EmailDeliveryError
 from accounts.models import Customer
 from produtos.models import (
     AllowedRating,
@@ -142,3 +146,54 @@ class AdminDashboardViewTests(APITestCase):
         self.assertEqual(reviews['pending_verification'], 0)
         self.assertEqual(reviews['active_permissions'], 1)
         self.assertEqual(reviews['permissions_expiring_3_days'], 1)
+
+
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+class AuthEmailFlowTests(APITestCase):
+
+    def setUp(self):
+        self.register_url = reverse('client-auth:client-auth-register')
+        self.forgot_url = reverse('client-auth:client-auth-forgot')
+        self.user = User.objects.create_user(
+            username='existing',
+            email='existing@example.com',
+            password='secret123',
+        )
+        Customer.objects.create(user=self.user, full_name='Cliente Existente')
+
+    def test_register_sends_verification_email(self):
+        payload = {
+            'full_name': 'Teste Usuário',
+            'email': 'novo@example.com',
+            'password': 'SenhaForte123',
+        }
+        response = self.client.post(self.register_url, payload)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('Confirme seu e-mail', mail.outbox[0].subject)
+
+    def test_register_returns_accepted_when_email_fails(self):
+        payload = {
+            'full_name': 'Outro Usuário',
+            'email': 'falha@example.com',
+            'password': 'SenhaForte123',
+        }
+        with patch('accounts.views.send_verification_email', side_effect=EmailDeliveryError("erro")):
+            response = self.client.post(self.register_url, payload)
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertIn('não foi possível enviar', response.data['detail'])
+
+    def test_forgot_password_returns_service_unavailable_on_email_failure(self):
+        payload = {'email': 'existing@example.com'}
+        with patch('accounts.views.send_password_reset_email', side_effect=EmailDeliveryError("erro")):
+            response = self.client.post(self.forgot_url, payload)
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertIn('Não foi possível enviar', response.data['detail'])
+
+    def test_forgot_password_sends_email(self):
+        payload = {'email': 'existing@example.com'}
+        response = self.client.post(self.forgot_url, payload)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('Redefinição de senha', mail.outbox[0].subject)
+

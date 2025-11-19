@@ -1,17 +1,23 @@
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from accounts.models import Customer
 from accounts.serializers import CustomerAdminSerializer
-from .models import AllowedRating, Avaliacao, Banner, Categoria, Contato, Produto
+from django.utils import timezone
+
+from .models import AllowedRating, Avaliacao, Banner, Categoria, Contato, Produto, TipoAvaliacao, TipoItem, PedidoIntencao
 from .serializers import (
     AllowedRatingSerializer,
     AvaliacaoSerializer,
     BannerSerializer,
     CategoriaSerializer,
     ContatoSerializer,
+    PedidoIntencaoAdminSerializer,
     ProdutoAdminSerializer,
+    TipoAvaliacaoSerializer,
+    TipoItemSerializer,
 )
 
 
@@ -22,6 +28,7 @@ class BaseAdminViewSet(viewsets.ModelViewSet):
 class ProdutoAdminViewSet(BaseAdminViewSet):
     queryset = Produto.objects.all().select_related("categoria", "tipo")
     serializer_class = ProdutoAdminSerializer
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
 
     @action(detail=True, methods=["post"], url_path="atualizar-estoque")
     def atualizar_estoque(self, request, pk=None):
@@ -46,6 +53,7 @@ class CategoriaAdminViewSet(BaseAdminViewSet):
 class BannerAdminViewSet(BaseAdminViewSet):
     queryset = Banner.objects.all()
     serializer_class = BannerSerializer
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
 
 
 class AvaliacaoAdminViewSet(BaseAdminViewSet):
@@ -56,6 +64,28 @@ class AvaliacaoAdminViewSet(BaseAdminViewSet):
 class AllowedRatingAdminViewSet(BaseAdminViewSet):
     queryset = AllowedRating.objects.select_related("usuario", "produto")
     serializer_class = AllowedRatingSerializer
+
+
+class TipoItemAdminViewSet(BaseAdminViewSet):
+    queryset = TipoItem.objects.all()
+    serializer_class = TipoItemSerializer
+
+
+class TipoAvaliacaoAdminViewSet(BaseAdminViewSet):
+    queryset = TipoAvaliacao.objects.all()
+    serializer_class = TipoAvaliacaoSerializer
+
+
+class PedidoIntencaoAdminViewSet(BaseAdminViewSet):
+    queryset = PedidoIntencao.objects.select_related("usuario", "produto")
+    serializer_class = PedidoIntencaoAdminSerializer
+
+    def perform_update(self, serializer):
+        instance = serializer.save(
+            confirmado_por=self.request.user,
+            confirmado_em=timezone.now(),
+        )
+        instance.sync_allowed_rating()
 
 
 class CustomerAdminViewSet(

@@ -31,15 +31,15 @@ from .serializers import (
 
 
 # ViewSet para Produto (com CRUD completo + ação de destaque)
-class ProdutoViewSet(viewsets.ModelViewSet):
+class ProdutoViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Produto.objects.all()
     serializer_class = ProdutoSerializer
 
     def get_permissions(self):
-        # Somente leitura para usuários não autenticados; CRUD completo para autenticados
+        # leitura liberada ao público; demais ações (se declaradas futuramente) apenas para admin
         if self.action in ['list', 'retrieve', 'destaques']:
             return [permissions.AllowAny()]
-        return [permissions.IsAuthenticated()]
+        return [permissions.IsAdminUser()]
 
     @action(detail=False, methods=['get'], url_path='destaque')
     def destaques(self, request):
@@ -229,8 +229,8 @@ class AvaliacaoAPIView(APIView):
         except (TypeError, ValueError):
             return Response({'nota': ['A nota deve ser um número inteiro.']}, status=status.HTTP_400_BAD_REQUEST)
 
-        if nota < 0 or nota > 10:
-            return Response({'nota': ['A nota deve estar entre 0 e 10.']}, status=status.HTTP_400_BAD_REQUEST)
+        if nota < 1 or nota > 5:
+            return Response({'nota': ['A nota deve estar entre 1 e 5.']}, status=status.HTTP_400_BAD_REQUEST)
 
         if Avaliacao.objects.filter(produto=produto, usuario=request.user).exists():
             return Response({'detail': 'Você já avaliou este produto.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -318,8 +318,8 @@ class AvaliacaoAPIView(APIView):
                 nota_int = int(nota)
             except (TypeError, ValueError):
                 return Response({'nota': ['A nota deve ser um número inteiro.']}, status=status.HTTP_400_BAD_REQUEST)
-            if nota_int < 0 or nota_int > 10:
-                return Response({'nota': ['A nota deve estar entre 0 e 10.']}, status=status.HTTP_400_BAD_REQUEST)
+            if nota_int < 1 or nota_int > 5:
+                return Response({'nota': ['A nota deve estar entre 1 e 5.']}, status=status.HTTP_400_BAD_REQUEST)
             avaliacao.nota = nota_int
 
         avaliacao.save()
@@ -367,10 +367,18 @@ class PedidoIntencaoViewSet(viewsets.ModelViewSet):
         input_serializer = PedidoIntencaoSerializer(data=request.data)
         input_serializer.is_valid(raise_exception=True)
         produto = input_serializer.validated_data['produto']
+        nome_contato = input_serializer.validated_data.get('nome_contato')
+        telefone_contato = input_serializer.validated_data.get('telefone_contato', '')
+        endereco_entrega = input_serializer.validated_data.get('endereco_entrega', '')
+        observacoes_cliente = input_serializer.validated_data.get('observacoes_cliente', '')
 
         intencao = PedidoIntencao.objects.create(
             usuario=request.user,
             produto=produto,
+            nome_contato=nome_contato or getattr(request.user, 'full_name', '') or request.user.get_full_name(),
+            telefone_contato=telefone_contato,
+            endereco_entrega=endereco_entrega,
+            observacoes_cliente=observacoes_cliente,
         )
 
         output_serializer = self.get_serializer(intencao)
@@ -399,9 +407,22 @@ class PedidoIntencaoViewSet(viewsets.ModelViewSet):
         return Response(self.get_serializer(instance).data)
 
     def destroy(self, request, *args, **kwargs):
-        if not request.user.is_staff:
-            return Response({'detail': 'Apenas administradores podem remover intenções.'}, status=status.HTTP_403_FORBIDDEN)
         instance = self.get_object()
-        AllowedRating.objects.filter(usuario=instance.usuario, produto=instance.produto, used_at__isnull=True).delete()
+
+        if request.user.is_staff:
+            AllowedRating.objects.filter(
+                usuario=instance.usuario,
+                produto=instance.produto,
+                used_at__isnull=True,
+            ).delete()
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        if instance.usuario != request.user:
+            return Response({'detail': 'Sem permissão para remover esta intenção.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if instance.status != PedidoIntencao.Status.AGUARDANDO:
+            return Response({'detail': 'Somente pedidos pendentes podem ser cancelados.'}, status=status.HTTP_400_BAD_REQUEST)
+
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)

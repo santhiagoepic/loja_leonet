@@ -1,14 +1,15 @@
+import logging
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.db.models import Count
+from django.utils import timezone
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenRefreshView
-from django.utils import timezone
-from django.db.models import Count
 
-from .email import send_password_reset_email, send_verification_email
+from .email import EmailDeliveryError, send_password_reset_email, send_verification_email
 from .models import Customer
 from produtos.models import PedidoIntencao, Avaliacao, AllowedRating
 from .serializers import (
@@ -22,6 +23,8 @@ from .serializers import (
     UpdateCustomerSerializer,
 )
 
+logger = logging.getLogger(__name__)
+
 User = get_user_model()
 
 
@@ -32,8 +35,18 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user, token = serializer.save()
-        send_verification_email(user, token)
-        return Response({"detail": "Cadastro realizado. Confirme seu e-mail."}, status=status.HTTP_201_CREATED)
+        email_failed = False
+        try:
+            send_verification_email(user, token)
+        except EmailDeliveryError:
+            logger.exception("Falha ao enviar e-mail de verificação para %s", user.email)
+            email_failed = True
+
+        detail = "Cadastro realizado. Confirme seu e-mail." if not email_failed else (
+            "Cadastro realizado, mas não foi possível enviar o e-mail de confirmação. Tente novamente mais tarde."
+        )
+        status_code = status.HTTP_201_CREATED if not email_failed else status.HTTP_202_ACCEPTED
+        return Response({"detail": detail}, status=status_code)
 
 
 class VerifyEmailView(APIView):
@@ -71,7 +84,14 @@ class ForgotPasswordView(APIView):
         serializer = ForgotPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         token = serializer.save()
-        send_password_reset_email(token.user, token)
+        try:
+            send_password_reset_email(token.user, token)
+        except EmailDeliveryError:
+            logger.exception("Falha ao enviar e-mail de redefinição para %s", token.user.email)
+            return Response(
+                {"detail": "Não foi possível enviar o e-mail de redefinição. Tente novamente em instantes."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
         return Response({"detail": "Verifique seu e-mail para continuar."})
 
 

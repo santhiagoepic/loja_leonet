@@ -50,15 +50,61 @@ class TokenPairSerializer(serializers.Serializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    email = serializers.CharField()
     password = serializers.CharField(write_only=True)
 
+    @staticmethod
+    def _normalize(value: str) -> str:
+        return (value or "").strip()
+
+    @staticmethod
+    def _digits_only(value: str) -> str:
+        return "".join(filter(str.isdigit, value or ""))
+
+    def _authenticate_with_username(self, username: str, password: str):
+        if not username:
+            return None
+        return authenticate(username=username, password=password)
+
     def validate(self, attrs):
-        email = attrs.get("email").lower()
+        raw_identifier = self._normalize(attrs.get("email", ""))
         password = attrs.get("password")
-        user = authenticate(username=email, password=password)
+
+        if not raw_identifier or not password:
+            raise serializers.ValidationError("Informe suas credenciais.")
+
+        identifier = raw_identifier.lower()
+        user = None
+
+        # 1) tentar email diretamente
+        if "@" in identifier:
+            user = self._authenticate_with_username(identifier, password)
+            if not user:
+                email_user = User.objects.filter(email__iexact=identifier).first()
+                if email_user:
+                    user = self._authenticate_with_username(email_user.username, password)
+
+        # 2) tentar username literal (útil para staff)
+        if not user:
+            user = self._authenticate_with_username(raw_identifier, password)
+
+        # 3) tentar telefone cadastrado no perfil de cliente
+        if not user:
+            digits = self._digits_only(raw_identifier)
+            if digits:
+                profile = Customer.objects.select_related("user").filter(phone_number__icontains=digits).first()
+                if profile:
+                    user = self._authenticate_with_username(profile.user.username, password)
+
+        # 4) tentar nome completo do cliente
+        if not user:
+            profile = Customer.objects.select_related("user").filter(full_name__iexact=raw_identifier).first()
+            if profile:
+                user = self._authenticate_with_username(profile.user.username, password)
+
         if not user:
             raise serializers.ValidationError("Credenciais inválidas.")
+
         attrs["user"] = user
         return attrs
 

@@ -43,11 +43,11 @@ export function Header() {
   };
 
   return (
-    <header className="bg-white shadow-lg border-b-4 border-orange-500">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
+    <header className="border-b-4 border-orange-500 bg-white shadow-lg">
+      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
+        <div className="flex items-center justify-between gap-4">
           {/* Logo aumentada e mais destacada */}
-          <div className="relative w-24 h-28 flex-shrink-0">
+          <div className="relative h-16 w-20 flex-shrink-0 sm:h-24 sm:w-28">
             <Image
               src="/leonetlogo.png"
               alt="Leonete Modas"
@@ -193,12 +193,18 @@ function NavLink({ href, text }) {
 }
 
 // Componente para links de navegação (mobile) - melhorado
-function MobileNavLink({ href, text, onClick, variants }) {
+function MobileNavLink({ href, text, onClick, variants, icon, badge }) {
   return (
     <motion.div variants={variants}>
       <Link href={href} onClick={onClick}>
-        <button className="w-full text-left px-6 py-4 text-lg font-bold text-gray-800 hover:bg-orange-50 hover:text-orange-600 border-b border-gray-100 last:border-b-0 transition-all duration-300 flex items-center">
+        <button className="w-full text-left px-6 py-4 text-lg font-bold text-gray-800 hover:bg-orange-50 hover:text-orange-600 border-b border-gray-100 last:border-b-0 transition-all duration-300 flex items-center gap-3">
+          {icon && <span>{icon}</span>}
           <span className="flex-1">{text}</span>
+          {badge && (
+            <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-orange-500 px-2 text-sm font-bold text-white">
+              {badge}
+            </span>
+          )}
           <span className="text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300">→</span>
         </button>
       </Link>

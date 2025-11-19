@@ -13,6 +13,23 @@ const parseResponse = async (response) => {
   return text ? { detail: text } : null;
 };
 
+const extractErrorMessage = (data) => {
+  if (!data) return DEFAULT_ERROR;
+  if (typeof data === "string") return data;
+  if (Array.isArray(data)) {
+    return extractErrorMessage(data[0]);
+  }
+  if (typeof data === "object") {
+    if (data.detail) return extractErrorMessage(data.detail);
+    if (data.error) return extractErrorMessage(data.error);
+    const firstKey = Object.keys(data)[0];
+    if (firstKey) {
+      return extractErrorMessage(data[firstKey]);
+    }
+  }
+  return DEFAULT_ERROR;
+};
+
 export function createHttpClient({ baseUrl, refreshPath, getTokens, setTokens } = {}) {
   const normalizedBase = normalizeBase(baseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "");
 
@@ -102,8 +119,7 @@ export function createHttpClient({ baseUrl, refreshPath, getTokens, setTokens } 
 
     if (!response.ok) {
       const errorData = await parseResponse(response);
-      const detail = errorData?.detail || errorData?.error || DEFAULT_ERROR;
-      throw new Error(detail);
+      throw new Error(extractErrorMessage(errorData));
     }
 
     if (response.status === 204) {

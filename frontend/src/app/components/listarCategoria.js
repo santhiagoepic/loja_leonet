@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Loader2, X } from "lucide-react";
 import axios from "axios";
 import { apiUrl } from "../../lib/api";
+import { buildImageUrl } from "../lib/images";
 
 export default function ListarCategoria({
   todosProdutos,
@@ -125,7 +126,7 @@ export default function ListarCategoria({
               >
                 <div className="relative h-85 w-full">
                   <Image
-                    src={`${imageBaseUrl}${produto.imagem}`}
+                    src={buildImageUrl(produto.imagem, imageBaseUrl)}
                     alt={produto.nome}
                     fill
                     className="object-cover"
@@ -178,7 +179,7 @@ export default function ListarCategoria({
 
             <div className="relative h-100 w-full mb-4">
               <Image
-                src={`${imageBaseUrl}${produtoSelecionado.imagem}`}
+                src={buildImageUrl(produtoSelecionado?.imagem, imageBaseUrl)}
                 alt={produtoSelecionado.nome}
                 fill
                 className="object-cover rounded"
@@ -209,7 +210,7 @@ export default function ListarCategoria({
                     <p className="text-sm font-semibold text-yellow-700">
                       {av.nome_completo}
                     </p>
-                    <p className="text-xs text-yellow-600">Nota: {av.nota}/10</p>
+                    <p className="text-xs text-yellow-600">Nota: {av.nota}/5</p>
                     {av.comentario && (
                       <p className="text-sm mt-1 text-yellow-800">{av.comentario}</p>
                     )}
@@ -274,12 +275,12 @@ export default function ListarCategoria({
 
               <div className=" text-yellow-600">
                 <label className="block font-semibold text-yellow-700">
-                  Nota (0 a 10) *
+                  Nota (1 a 5) *
                 </label>
                 <input
                   type="number"
-                  min="0"
-                  max="10"
+                  min="1"
+                  max="5"
                   value={nota}
                   onChange={(e) => setNota(e.target.value)}
                   className={`w-full border rounded px-3 py-2 ${
