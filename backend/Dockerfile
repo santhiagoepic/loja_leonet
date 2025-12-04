@@ -11,6 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend /app
 RUN cp /app/entrypoint.sh /entrypoint.sh \
+	&& sed -i 's/\r$//' /entrypoint.sh \
 	&& chmod +x /entrypoint.sh
 
 EXPOSE 8000

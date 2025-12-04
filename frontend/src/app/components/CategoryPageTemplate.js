@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import CategorySection from "./CategorySection";
 import { apiUrl } from "../../lib/api";
+import { buildImageUrl } from "../lib/images";
 
 const IMAGE_BASE_URL = "https://res.cloudinary.com/dzlm6jkhv/";
 const PHONE_NUMBER = "5563984107523";
@@ -12,7 +13,8 @@ const buildWhatsAppMessage = (produto) => {
   const nomeProduto = produto.nome || "Produto";
   const descricao = produto.descricao || "Sem descrição disponível";
   const preco = produto.preco ? Number.parseFloat(produto.preco).toFixed(2).replace(".", ",") : "sob consulta";
-  return `🛍️ *INTERESSE NO PRODUTO* 🛍️\n\n*Produto:* ${nomeProduto}\n*Descrição:* ${descricao}\n*Preço:* R$ ${preco}\n\nOlá! Gostaria de mais informações sobre este produto.`;
+  const imageUrl = produto?.imagem ? buildImageUrl(produto.imagem, IMAGE_BASE_URL) : null;
+  return `🛍️ *INTERESSE NO PRODUTO* 🛍️\n\n*Produto:* ${nomeProduto}\n*Descrição:* ${descricao}\n*Preço:* R$ ${preco}\n${imageUrl ? `*Foto:* ${imageUrl}\n` : ""}\nOlá! Gostaria de mais informações sobre este produto.`;
 };
 
 export default function CategoryPageTemplate({ endpoint, category, title }) {

@@ -74,7 +74,8 @@ export default function ProductDetail({ slug }) {
     const nomeProduto = produto.nome || "Produto";
     const descricao = produto.descricao || "Sem descrição disponível";
     const preco = produto.preco ? formatCurrency(produto.preco) : "Preço sob consulta";
-    const message = `🛍️ *INTERESSE NO PRODUTO* 🛍️\n\n*Produto:* ${nomeProduto}\n*Descrição:* ${descricao}\n*Preço:* ${preco}\n\nOlá! Gostaria de mais informações sobre este produto.`;
+    const imageUrl = produto.imagem ? buildImageUrl(produto.imagem) : null;
+    const message = `🛍️ *INTERESSE NO PRODUTO* 🛍️\n\n*Produto:* ${nomeProduto}\n*Descrição:* ${descricao}\n*Preço:* ${preco}\n${imageUrl ? `*Foto:* ${imageUrl}\n` : ""}\nOlá! Gostaria de mais informações sobre este produto.`;
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, "_blank", "noopener,noreferrer");
   };

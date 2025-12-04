@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import Banners from "./banners/Banners";
 import CategorySection from "./components/CategorySection";
 import { apiUrl } from "../lib/api";
+import { buildImageUrl } from "./lib/images";
 
 // COMPONENTE PRINCIPAL CORRIGIDO
 export default function Home() {
@@ -59,17 +60,18 @@ export default function Home() {
   // Função para redirecionar para WhatsApp
   const handleWhatsApp = (produto) => {
     const phoneNumber = "5563984107523";
-    
-    const nomeProduto = produto.nome || "Produto";
-    const descricao = produto.descricao || "Sem descrição disponível";
-    const preco = Number.parseFloat(produto.preco).toFixed(2).replace(".", ",");
-    
+
+    const nomeProduto = produto?.nome || "Produto";
+    const descricao = produto?.descricao || "Sem descrição disponível";
+    const preco = produto?.preco ? Number.parseFloat(produto.preco).toFixed(2).replace(".", ",") : "sob consulta";
+    const imageUrl = produto?.imagem ? buildImageUrl(produto.imagem, imageBaseUrl) : null;
+
     const message = `🛍️ *INTERESSE NO PRODUTO* 🛍️
 
 *Produto:* ${nomeProduto}
 *Descrição:* ${descricao}
 *Preço:* R$ ${preco}
-
+${imageUrl ? `*Foto:* ${imageUrl}\n` : ""}
 Olá! Gostaria de mais informações sobre este produto. Poderia me informar:
 • Cores disponíveis
 • Tamanhos
@@ -77,11 +79,11 @@ Olá! Gostaria de mais informações sobre este produto. Poderia me informar:
 • Prazo de entrega
 
 Aguardo seu retorno! 😊`;
-    
+
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-    
-    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+
+    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
   };
 
   return (

@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tailwindcss/postcss": "^4",
     "axios": "^1.7.7",
     "framer-motion": "^12.23.22",
     "lucide-react": "^0.509.0",
@@ -18,7 +19,6 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
     "tailwindcss": "^4"
