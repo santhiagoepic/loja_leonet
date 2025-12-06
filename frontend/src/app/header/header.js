@@ -3,16 +3,46 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { Menu, X, LogIn, LogOut, User } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Menu, X, LogIn, LogOut, User, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../providers/auth-context";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [mobileSearchQuery, setMobileSearchQuery] = useState("");
+  const router = useRouter();
   const { user, logout } = useAuth();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const submitSearch = (value, { closeMenu } = {}) => {
+    const term = (value || "").trim();
+    if (!term) {
+      return false;
+    }
+    router.push(`/buscar?q=${encodeURIComponent(term)}`);
+    if (closeMenu) {
+      setIsMenuOpen(false);
+    }
+    return true;
+  };
+
+  const handleDesktopSearchSubmit = (event) => {
+    event.preventDefault();
+    if (submitSearch(searchQuery)) {
+      setSearchQuery("");
+    }
+  };
+
+  const handleMobileSearchSubmit = (event) => {
+    event.preventDefault();
+    if (submitSearch(mobileSearchQuery, { closeMenu: true })) {
+      setMobileSearchQuery("");
+    }
   };
 
   // Animação para os itens do menu
@@ -58,14 +88,33 @@ export function Header() {
           </div>
 
           {/* Navegação desktop - centralizada e com melhor espaçamento */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <NavLink href="/" text="Home" />
-            <NavLink href="/masculino" text="Masculino" />
-            <NavLink href="/feminino" text="Feminino" />
-            <NavLink href="/infantil" text="Infantil" />
-            <NavLink href="/acessorios" text="Acessórios" />
-            <NavLink href="/contato" text="Contato" />
-            <NavLink href="/suporte" text="Suporte" />
+          <nav className="hidden w-full items-center justify-between md:flex gap-6">
+            <div className="flex items-center space-x-5">
+              <NavLink href="/" text="Home" />
+              <NavLink href="/masculino" text="Masculino" />
+              <NavLink href="/feminino" text="Feminino" />
+              <NavLink href="/infantil" text="Infantil" />
+              <NavLink href="/acessorios" text="Acessórios" />
+              <NavLink href="/contato" text="Contato" />
+              <NavLink href="/suporte" text="Suporte" />
+            </div>
+            <form onSubmit={handleDesktopSearchSubmit} className="relative flex items-center gap-2 rounded-full border border-orange-200 bg-white px-3 py-1.5 shadow-sm">
+              <Search className="h-4 w-4 text-orange-500" />
+              <input
+                type="search"
+                placeholder="Buscar produto"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                className="w-40 bg-transparent text-sm text-gray-700 placeholder-gray-400 focus:outline-none"
+                aria-label="Buscar produtos"
+              />
+              <button
+                type="submit"
+                className="rounded-full bg-orange-500 px-3 py-1 text-xs font-semibold text-white transition hover:bg-orange-600"
+              >
+                Buscar
+              </button>
+            </form>
             {user ? (
               <div className="flex items-center gap-3">
                 <Link
@@ -137,6 +186,23 @@ export function Header() {
                 <MobileNavLink href="/infantil" text="Infantil" onClick={toggleMenu} variants={itemVariants} />
                 <MobileNavLink href="/acessorios" text="Acessórios" onClick={toggleMenu} variants={itemVariants} />
                 <MobileNavLink href="/contato" text="Contato" onClick={toggleMenu} variants={itemVariants} />
+                <motion.form onSubmit={handleMobileSearchSubmit} variants={itemVariants} className="px-6 pb-4">
+                  <label htmlFor="mobile-search" className="sr-only">Buscar produtos</label>
+                  <div className="flex items-center gap-2 rounded-2xl border border-orange-200 bg-white px-4 py-2 shadow-sm">
+                    <Search className="h-4 w-4 text-orange-500" />
+                    <input
+                      id="mobile-search"
+                      type="search"
+                      value={mobileSearchQuery}
+                      onChange={(event) => setMobileSearchQuery(event.target.value)}
+                      placeholder="Buscar produto"
+                      className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-500 focus:outline-none"
+                    />
+                    <button type="submit" className="text-sm font-semibold text-orange-600">
+                      Buscar
+                    </button>
+                  </div>
+                </motion.form>
                 <MobileNavLink href="/suporte" text="Suporte" onClick={toggleMenu} variants={itemVariants} />
                 <motion.div variants={itemVariants} className="px-6 pt-4 space-y-3">
                   {user ? (

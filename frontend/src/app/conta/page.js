@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { useAuth } from "../providers/auth-context";
 import axios from "axios";
 import { apiUrl } from "../../lib/api";
+import useProfileForm from "./useProfileForm";
+import { useAuth } from "../providers/auth-context";
 
 const formatDate = (isoString) => {
   if (!isoString) return "-";
@@ -53,7 +54,7 @@ const getStatusMeta = (status) => {
 
 export default function AccountPage() {
   const router = useRouter();
-  const { user, loading, logout, tokens } = useAuth();
+  const { user, loading, logout, tokens, refreshProfile } = useAuth();
   const [pedidos, setPedidos] = useState([]);
   const [pedidosLoading, setPedidosLoading] = useState(true);
   const [pedidosError, setPedidosError] = useState(null);
@@ -122,12 +123,45 @@ export default function AccountPage() {
   };
 
   const profile = useMemo(() => ({
-    nome: user?.full_name || "-",
+    nome: user?.full_name || user?.customer_profile?.full_name || "-",
     email: user?.email || "-",
-    telefone: user?.phone_number || "Não informado",
+    telefone: user?.phone_number || user?.customer_profile?.phone_number || "Não informado",
     criadoEm: formatDate(user?.created_at),
-    verificado: user?.email_verified ?? false,
+    verificado: user?.email_verified ?? user?.customer_profile?.email_verified ?? false,
   }), [user]);
+
+  const {
+    formState,
+    updateField,
+    errors: profileErrors,
+    setErrors: setProfileErrors,
+    submitting: savingProfile,
+    setSubmitting: setSavingProfile,
+    validate: validateProfile,
+  } = useProfileForm({ full_name: profile.nome, phone_number: profile.telefone });
+
+  const handleProfileSave = async () => {
+    if (!tokens?.access) {
+      setProfileErrors({ geral: "Sua sessão expirou. Faça login novamente." });
+      return;
+    }
+    if (!validateProfile()) {
+      return;
+    }
+    setSavingProfile(true);
+    setProfileErrors({});
+    try {
+      await axios.patch(apiUrl("/api/client/me/"), formState, {
+        headers: { Authorization: `Bearer ${tokens.access}` },
+      });
+      await refreshProfile();
+    } catch (error) {
+      const detail = error?.response?.data?.detail || error?.message || "Não foi possível salvar agora.";
+      setProfileErrors({ geral: detail });
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -226,14 +260,51 @@ export default function AccountPage() {
                 <dd className="text-base font-medium text-gray-900">#{user.id}</dd>
               </div>
             </dl>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-gray-300">
-                Editar dados
-              </button>
-              <button className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-gray-300">
-                Atualizar senha
-              </button>
-            </div>
+            <form className="mt-6 grid gap-4 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); handleProfileSave(); }}>
+              <div>
+                <label className="text-sm text-gray-500" htmlFor="full_name">Nome completo</label>
+                <input
+                  id="full_name"
+                  name="full_name"
+                  value={formState.full_name}
+                  onChange={(event) => updateField("full_name", event.target.value)}
+                  className="mt-1 w-full rounded-lg border border-gray-200 p-3 text-sm focus:border-orange-500 focus:outline-none"
+                />
+                {profileErrors.full_name && (<p className="mt-1 text-xs text-red-600">{profileErrors.full_name}</p>)}
+              </div>
+              <div>
+                <label className="text-sm text-gray-500" htmlFor="phone_number">Telefone</label>
+                <input
+                  id="phone_number"
+                  name="phone_number"
+                  value={formState.phone_number}
+                  onChange={(event) => updateField("phone_number", event.target.value)}
+                  className="mt-1 w-full rounded-lg border border-gray-200 p-3 text-sm focus:border-orange-500 focus:outline-none"
+                />
+                {profileErrors.phone_number && (<p className="mt-1 text-xs text-red-600">{profileErrors.phone_number}</p>)}
+              </div>
+              {profileErrors.geral && (
+                <div className="sm:col-span-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {profileErrors.geral}
+                </div>
+              )}
+              <div className="flex flex-wrap gap-3 sm:col-span-2">
+                <button
+                  type="submit"
+                  className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-orange-400"
+                  disabled={savingProfile}
+                >
+                  {savingProfile ? "Salvando..." : "Salvar alterações"}
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-gray-300"
+                  onClick={() => router.push("/auth/reset-password")}
+                >
+                  Atualizar senha
+                </button>
+              </div>
+            </form>
           </div>
 
           <div className="mt-10 rounded-2xl border border-gray-100 bg-white p-6">

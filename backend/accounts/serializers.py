@@ -13,11 +13,18 @@ class RegisterSerializer(serializers.Serializer):
     full_name = serializers.CharField(max_length=255)
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
+    phone_number = serializers.CharField(max_length=20)
 
     def validate_email(self, value):
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError("Este e-mail já está cadastrado.")
         return value
+
+    def validate_phone_number(self, value):
+        digits = "".join(filter(str.isdigit, value or ""))
+        if len(digits) < 10:
+            raise serializers.ValidationError("Informe um telefone com DDD.")
+        return digits
 
     def validate_password(self, value):
         validate_password(value)
@@ -25,13 +32,18 @@ class RegisterSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         email = validated_data["email"].lower()
+        phone_number = validated_data["phone_number"]
         user = User.objects.create_user(
             username=email,
             email=email,
             password=validated_data["password"],
             first_name=validated_data["full_name"],
         )
-        Customer.objects.create(user=user, full_name=validated_data["full_name"])
+        Customer.objects.create(
+            user=user,
+            full_name=validated_data["full_name"],
+            phone_number=phone_number,
+        )
         token = EmailVerificationToken.objects.create(user=user)
         return user, token
 
@@ -200,7 +212,13 @@ class CustomerSerializer(serializers.ModelSerializer):
 
 class UpdateCustomerSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(max_length=255)
-    phone_number = serializers.CharField(max_length=20, allow_blank=True)
+    phone_number = serializers.CharField(max_length=20)
+
+    def validate_phone_number(self, value):
+        digits = "".join(filter(str.isdigit, value or ""))
+        if len(digits) < 10:
+            raise serializers.ValidationError("Informe um telefone com DDD.")
+        return digits
 
     class Meta:
         model = Customer

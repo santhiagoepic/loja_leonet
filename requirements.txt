@@ -1,0 +1,2 @@
+# Dependências completas do backend da Loja Leonet
+-r backend/requirements.txt

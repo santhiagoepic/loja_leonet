@@ -8,6 +8,7 @@ export default function CategorySection({
   title,
   produtos = [],
   onWhatsApp,
+  busyProductId,
   imageBaseUrl = "https://res.cloudinary.com/dzlm6jkhv/",
   showSeeAll = true,
 }) {
@@ -31,6 +32,7 @@ export default function CategorySection({
                 product={produto}
                 imageBaseUrl={imageBaseUrl}
                 onWhatsApp={onWhatsApp}
+                busyProductId={busyProductId}
                 badge={grupo.tipo}
               />
             ))}

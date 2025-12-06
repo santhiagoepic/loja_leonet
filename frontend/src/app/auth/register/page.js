@@ -8,7 +8,7 @@ import { useAuth } from "../../providers/auth-context";
 export default function RegisterPage() {
   const { register } = useAuth();
   const router = useRouter();
-  const [formState, setFormState] = useState({ fullName: "", email: "", password: "", rePassword: "" });
+  const [formState, setFormState] = useState({ fullName: "", phoneNumber: "", email: "", password: "", rePassword: "" });
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState(null);
 
@@ -52,6 +52,22 @@ export default function RegisterPage() {
               className="mt-1 w-full rounded-lg border border-gray-200 p-3 focus:border-orange-500 focus:outline-none"
               placeholder="Seu nome"
             />
+          </div>
+
+          <div className="md:col-span-2">
+            <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">Telefone com DDD</label>
+            <input
+              id="phoneNumber"
+              name="phoneNumber"
+              type="tel"
+              inputMode="tel"
+              required
+              value={formState.phoneNumber}
+              onChange={handleChange}
+              className="mt-1 w-full rounded-lg border border-gray-200 p-3 focus:border-orange-500 focus:outline-none"
+              placeholder="(63) 99999-9999"
+            />
+            <p className="mt-1 text-xs text-gray-400">Usaremos este número para enviar os produtos automaticamente via WhatsApp.</p>
           </div>
 
           <div className="md:col-span-2">

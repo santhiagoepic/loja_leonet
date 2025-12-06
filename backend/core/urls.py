@@ -14,6 +14,8 @@ from produtos.views import (
     AvaliacaoAPIView,
     SuporteAPIView,
     PedidoIntencaoViewSet,
+    WhatsAppRelayView,
+    WhatsAppOrderView,
 )
 from produtos.admin_views import (
     ProdutoAdminViewSet,
@@ -95,6 +97,8 @@ urlpatterns = [
     path('api/banners/', BannerList.as_view()),
     path('api/contato/', ContatoDetail.as_view()),
     path('api/home/', HomeView.as_view()),
+    path('api/whatsapp/send/', WhatsAppRelayView.as_view(), name='whatsapp-send'),
+    path('api/whatsapp/orders/', WhatsAppOrderView.as_view(), name='whatsapp-order'),
     path('api/login/', obtain_auth_token),
     path('api/produtos_feminina/', ProdutosFemininaView.as_view()),
     path('api/produtos_masculina/', ProdutosMasculinaView.as_view()),

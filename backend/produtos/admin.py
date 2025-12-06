@@ -11,6 +11,7 @@ from .models import (
 	PedidoIntencao,
 	UserProfile,
 	AllowedRating,
+	WhatsAppOrder,
 )
 
 
@@ -73,3 +74,4 @@ admin.site.register(Banner)
 admin.site.register(Contato)
 admin.site.register(TipoItem)
 admin.site.register(TipoAvaliacao)
+admin.site.register(WhatsAppOrder)

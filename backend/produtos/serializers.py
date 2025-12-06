@@ -1,3 +1,5 @@
+import re
+
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import (
@@ -12,6 +14,7 @@ from .models import (
     PedidoIntencao,
     AllowedRating,
     UserProfile,
+    WhatsAppOrder,
 )
 
 
@@ -201,3 +204,67 @@ class AllowedRatingSerializer(serializers.ModelSerializer):
             'created_at', 'expires_at', 'used_at'
         ]
         read_only_fields = ('id', 'created_at')
+
+
+class WhatsAppInquirySerializer(serializers.Serializer):
+    customer_phone = serializers.CharField()
+    product_id = serializers.IntegerField(required=False)
+    product_name = serializers.CharField(max_length=255)
+    product_description = serializers.CharField(required=False, allow_blank=True)
+    product_price = serializers.CharField(required=False, allow_blank=True)
+    product_url = serializers.CharField(required=False, allow_blank=True)
+    image_url = serializers.URLField(required=False, allow_blank=True)
+    extra_notes = serializers.CharField(required=False, allow_blank=True)
+
+    def validate_customer_phone(self, value):
+        digits = re.sub(r"\D", "", value or "")
+        if len(digits) < 10:
+            raise serializers.ValidationError("Informe um telefone com DDD.")
+        return digits
+
+    def validate_image_url(self, value):
+        return value or None
+
+    def validate_product_url(self, value):
+        return value or None
+
+    def validate(self, attrs):
+        image_url = attrs.get('image_url')
+        if image_url:
+            attrs['image_name'] = image_url.rstrip('/').split('/')[-1] or 'produto.jpg'
+        return attrs
+
+
+class WhatsAppOrderSerializer(serializers.ModelSerializer):
+    produto = ProdutoSerializer(read_only=True)
+
+    class Meta:
+        model = WhatsAppOrder
+        fields = (
+            'id',
+            'produto',
+            'status',
+            'customer_phone',
+            'product_name_snapshot',
+            'product_price_snapshot',
+            'product_url',
+            'image_url',
+            'message_preview',
+            'error_detail',
+            'created_at',
+            'sent_at',
+        )
+        read_only_fields = fields
+
+
+class WhatsAppOrderRequestSerializer(serializers.Serializer):
+    product_id = serializers.PrimaryKeyRelatedField(
+        queryset=Produto.objects.all(),
+        source='produto',
+    )
+
+    def create(self, validated_data):
+        raise NotImplementedError
+
+    def update(self, instance, validated_data):
+        raise NotImplementedError

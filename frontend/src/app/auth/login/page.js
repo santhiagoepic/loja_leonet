@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../../providers/auth-context";
 
 export default function LoginPage() {
@@ -12,9 +12,11 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  if (!loading && user) {
-    router.replace("/conta");
-  }
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace("/conta");
+    }
+  }, [loading, user, router]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;

@@ -23,5 +23,19 @@ services:
     depends_on:
       - backend
 
+  waha:
+    image: devlikeapro/waha:latest
+    container_name: waha
+    ports:
+      - "3001:3000"
+    environment:
+      - WHATSAPP_INSTANCE_NAME=default
+      - WHATSAPP_API_KEY=4f1a2b3c-9d8e-7f6a-5c4b-3a2d1e0f9a8b
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin123
+    volumes:
+      - waha-data:/app/.waha
+
 volumes:
   frontend_node_modules:
+  waha-data:

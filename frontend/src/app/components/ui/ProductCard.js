@@ -24,6 +24,7 @@ export default function ProductCard({
   product,
   imageBaseUrl = "https://res.cloudinary.com/dzlm6jkhv/",
   onWhatsApp,
+  busyProductId = null,
   badge,
   accent = "text-orange-500",
 }) {
@@ -41,6 +42,8 @@ export default function ProductCard({
       onWhatsApp(product);
     }
   };
+
+  const isProcessing = busyProductId === product.id;
 
   const card = (
     <article className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl">
@@ -63,10 +66,11 @@ export default function ProductCard({
           <div className="pointer-events-none absolute inset-0 flex flex-col gap-3 bg-gradient-to-b from-black/70 via-black/50 to-transparent p-4 opacity-0 transition duration-300 group-hover:pointer-events-auto group-hover:opacity-100">
             <button
               onClick={handleWhatsApp}
-              className="pointer-events-auto inline-flex items-center justify-center gap-2 rounded-xl bg-green-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-600"
+              disabled={isProcessing}
+              className="pointer-events-auto inline-flex items-center justify-center gap-2 rounded-xl bg-green-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-600 disabled:cursor-not-allowed disabled:bg-green-300"
             >
               <MessageCircle className="h-4 w-4" />
-              Falar no WhatsApp
+              {isProcessing ? 'Enviando...' : 'Comprar no WhatsApp'}
             </button>
           </div>
         )}

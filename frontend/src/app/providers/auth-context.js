@@ -113,9 +113,14 @@ export function AuthProvider({ children }) {
     }
   }, [fetchProfile, persistTokens, wrappedRequest]);
 
-  const register = useCallback(async ({ email, password, rePassword, fullName }) => {
+  const register = useCallback(async ({ email, password, rePassword, fullName, phoneNumber }) => {
     if (password !== rePassword) {
       return { ok: false, error: "As senhas não conferem." };
+    }
+
+    const digits = (phoneNumber || "").replace(/\D/g, "");
+    if (!digits || digits.length < 10) {
+      return { ok: false, error: "Informe um telefone válido com DDD." };
     }
 
     try {
@@ -126,6 +131,7 @@ export function AuthProvider({ children }) {
           email,
           password,
           full_name: fullName || email,
+          phone_number: digits,
         },
       });
       return { ok: true };
@@ -182,6 +188,14 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, [persistTokens]);
 
+  const refreshProfile = useCallback(async () => {
+    const accessToken = tokens?.access;
+    if (!accessToken) {
+      throw new Error("Sessão expirada. Faça login novamente.");
+    }
+    return fetchProfile(accessToken);
+  }, [tokens, fetchProfile]);
+
   const value = useMemo(() => ({
     user,
     loading,
@@ -193,7 +207,8 @@ export function AuthProvider({ children }) {
     resetPassword,
     verifyEmail,
     request: wrappedRequest,
-  }), [user, loading, login, register, logout, tokens, forgotPassword, resetPassword, verifyEmail, wrappedRequest]);
+    refreshProfile,
+  }), [user, loading, login, register, logout, tokens, forgotPassword, resetPassword, verifyEmail, wrappedRequest, refreshProfile]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

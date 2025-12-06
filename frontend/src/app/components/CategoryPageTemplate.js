@@ -1,26 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import CategorySection from "./CategorySection";
+import WhatsAppFeedbackCard from "./WhatsAppFeedbackCard";
 import { apiUrl } from "../../lib/api";
-import { buildImageUrl } from "../lib/images";
-
-const IMAGE_BASE_URL = "https://res.cloudinary.com/dzlm6jkhv/";
-const PHONE_NUMBER = "5563984107523";
-
-const buildWhatsAppMessage = (produto) => {
-  const nomeProduto = produto.nome || "Produto";
-  const descricao = produto.descricao || "Sem descrição disponível";
-  const preco = produto.preco ? Number.parseFloat(produto.preco).toFixed(2).replace(".", ",") : "sob consulta";
-  const imageUrl = produto?.imagem ? buildImageUrl(produto.imagem, IMAGE_BASE_URL) : null;
-  return `🛍️ *INTERESSE NO PRODUTO* 🛍️\n\n*Produto:* ${nomeProduto}\n*Descrição:* ${descricao}\n*Preço:* R$ ${preco}\n${imageUrl ? `*Foto:* ${imageUrl}\n` : ""}\nOlá! Gostaria de mais informações sobre este produto.`;
-};
+import { contactStoreViaWhatsApp, buildWarningFeedback } from "../lib/whatsapp";
+import { useAuth } from "../providers/auth-context";
 
 export default function CategoryPageTemplate({ endpoint, category, title }) {
+  const router = useRouter();
+  const { user, request, loading: authLoading } = useAuth();
   const [grupos, setGrupos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [pendingProductId, setPendingProductId] = useState(null);
+  const [whatsAppFeedback, setWhatsAppFeedback] = useState(null);
+
+  const emitFeedback = (payload) => {
+    if (!payload) {
+      setWhatsAppFeedback(null);
+      return;
+    }
+    setWhatsAppFeedback({ ...payload, id: Date.now() });
+  };
 
   useEffect(() => {
     const fetchProdutos = async () => {
@@ -44,9 +48,35 @@ export default function CategoryPageTemplate({ endpoint, category, title }) {
     fetchProdutos();
   }, [endpoint]);
 
-  const handleWhatsApp = (produto) => {
-    const message = encodeURIComponent(buildWhatsAppMessage(produto));
-    window.open(`https://wa.me/${PHONE_NUMBER}?text=${message}`, "_blank", "noopener,noreferrer");
+  const redirectToLogin = () => {
+    const target = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/";
+    router.push(`/auth/login?redirect=${encodeURIComponent(target)}`);
+  };
+
+  const handleWhatsApp = async (produto) => {
+    if (!produto) return;
+    if (!user) {
+      if (authLoading) {
+        return;
+      }
+      redirectToLogin();
+      return;
+    }
+    if (!user.phone_number) {
+      emitFeedback(buildWarningFeedback("Informe um telefone válido em Minha Conta."));
+      router.push("/conta");
+      return;
+    }
+
+    setPendingProductId(produto.id);
+    try {
+      const result = await contactStoreViaWhatsApp(produto, { requestFn: request });
+      emitFeedback(result.feedback);
+    } catch (err) {
+      emitFeedback({ status: "error", title: "Não conseguimos enviar", message: err.message || "Tente novamente em breve." });
+    } finally {
+      setPendingProductId(null);
+    }
   };
 
   return (
@@ -70,10 +100,11 @@ export default function CategoryPageTemplate({ endpoint, category, title }) {
             title={title}
             produtos={grupos}
             onWhatsApp={handleWhatsApp}
-            imageBaseUrl={IMAGE_BASE_URL}
+            busyProductId={pendingProductId}
             showSeeAll={false}
           />
         )}
+        <WhatsAppFeedbackCard feedback={whatsAppFeedback} onClose={() => emitFeedback(null)} />
       </div>
     </div>
   );

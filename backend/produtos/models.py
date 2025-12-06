@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 from cloudinary.models import CloudinaryField
 from django.core.exceptions import ValidationError
 
@@ -160,6 +161,54 @@ class PedidoIntencao(models.Model):
 
     def __str__(self):
         return f"Intenção de {self.usuario} para {self.produto} - {self.get_status_display()}"
+
+
+class WhatsAppOrder(models.Model):
+    class Status(models.TextChoices):
+        CREATED = 'created', _('Registrado')
+        SENT = 'sent', _('Mensagem enviada')
+        FAILED = 'failed', _('Falha no envio')
+
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='whatsapp_orders',
+    )
+    produto = models.ForeignKey(
+        'Produto',
+        on_delete=models.CASCADE,
+        related_name='whatsapp_orders',
+    )
+    customer_phone = models.CharField(max_length=20)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.CREATED)
+    product_name_snapshot = models.CharField(max_length=255)
+    product_price_snapshot = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    product_url = models.URLField(blank=True)
+    image_url = models.URLField(blank=True)
+    message_preview = models.TextField(blank=True)
+    gateway_payload = models.JSONField(default=dict, blank=True)
+    error_detail = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Envio automatizado (WhatsApp)'
+        verbose_name_plural = 'Envios automatizados (WhatsApp)'
+
+    def mark_sent(self, payload=None, message_preview=None):
+        self.status = self.Status.SENT
+        self.sent_at = timezone.now()
+        if payload is not None:
+            self.gateway_payload = payload
+        if message_preview is not None:
+            self.message_preview = message_preview
+        self.save(update_fields=['status', 'sent_at', 'gateway_payload', 'message_preview'])
+
+    def mark_failed(self, error_detail: str):
+        self.status = self.Status.FAILED
+        self.error_detail = error_detail
+        self.save(update_fields=['status', 'error_detail'])
 
 
 class AllowedRating(models.Model):

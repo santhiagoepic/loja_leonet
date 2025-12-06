@@ -1,14 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import Banners from "./banners/Banners";
 import CategorySection from "./components/CategorySection";
+import WhatsAppFeedbackCard from "./components/WhatsAppFeedbackCard";
 import { apiUrl } from "../lib/api";
-import { buildImageUrl } from "./lib/images";
+import { contactStoreViaWhatsApp, buildWarningFeedback } from "./lib/whatsapp";
+import { useAuth } from "./providers/auth-context";
 
 // COMPONENTE PRINCIPAL CORRIGIDO
 export default function Home() {
+  const router = useRouter();
+  const { user, request, loading: authLoading } = useAuth();
   const [categorias, setCategorias] = useState({
     femininos: [],
     masculinos: [],
@@ -17,6 +22,16 @@ export default function Home() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [pendingProductId, setPendingProductId] = useState(null);
+  const [whatsAppFeedback, setWhatsAppFeedback] = useState(null);
+
+  const emitFeedback = (payload) => {
+    if (!payload) {
+      setWhatsAppFeedback(null);
+      return;
+    }
+    setWhatsAppFeedback({ ...payload, id: Date.now() });
+  };
 
   const imageBaseUrl = "https://res.cloudinary.com/dzlm6jkhv/";
 
@@ -58,32 +73,37 @@ export default function Home() {
   }, []);
 
   // Função para redirecionar para WhatsApp
-  const handleWhatsApp = (produto) => {
-    const phoneNumber = "5563984107523";
+  const redirectToLogin = () => {
+    const target = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/";
+    router.push(`/auth/login?redirect=${encodeURIComponent(target)}`);
+  };
 
-    const nomeProduto = produto?.nome || "Produto";
-    const descricao = produto?.descricao || "Sem descrição disponível";
-    const preco = produto?.preco ? Number.parseFloat(produto.preco).toFixed(2).replace(".", ",") : "sob consulta";
-    const imageUrl = produto?.imagem ? buildImageUrl(produto.imagem, imageBaseUrl) : null;
+  const handleWhatsApp = async (produto) => {
+    if (!produto) return;
 
-    const message = `🛍️ *INTERESSE NO PRODUTO* 🛍️
+    if (!user) {
+      if (authLoading) {
+        return;
+      }
+      redirectToLogin();
+      return;
+    }
 
-*Produto:* ${nomeProduto}
-*Descrição:* ${descricao}
-*Preço:* R$ ${preco}
-${imageUrl ? `*Foto:* ${imageUrl}\n` : ""}
-Olá! Gostaria de mais informações sobre este produto. Poderia me informar:
-• Cores disponíveis
-• Tamanhos
-• Condições de pagamento
-• Prazo de entrega
+    if (!user.phone_number) {
+      emitFeedback(buildWarningFeedback("Precisamos do seu telefone com DDD para enviar os detalhes."));
+      router.push("/conta");
+      return;
+    }
 
-Aguardo seu retorno! 😊`;
-
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-
-    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+    setPendingProductId(produto.id);
+    try {
+      const result = await contactStoreViaWhatsApp(produto, { requestFn: request });
+      emitFeedback(result.feedback);
+    } catch (err) {
+      emitFeedback({ status: "error", title: "Não conseguimos enviar", message: err.message || "Tente novamente em instantes." });
+    } finally {
+      setPendingProductId(null);
+    }
   };
 
   return (
@@ -106,6 +126,7 @@ Aguardo seu retorno! 😊`;
               title="Produtos Femininos"
               produtos={categorias.femininos}
               onWhatsApp={handleWhatsApp}
+              busyProductId={pendingProductId}
               imageBaseUrl={imageBaseUrl}
             />
             
@@ -114,6 +135,7 @@ Aguardo seu retorno! 😊`;
               title="Produtos Masculinos"
               produtos={categorias.masculinos}
               onWhatsApp={handleWhatsApp}
+              busyProductId={pendingProductId}
               imageBaseUrl={imageBaseUrl}
             />
             
@@ -122,6 +144,7 @@ Aguardo seu retorno! 😊`;
               title="Acessórios"
               produtos={categorias.acessorios}
               onWhatsApp={handleWhatsApp}
+              busyProductId={pendingProductId}
               imageBaseUrl={imageBaseUrl}
             />
             
@@ -130,11 +153,13 @@ Aguardo seu retorno! 😊`;
               title="Infantil"
               produtos={categorias.infantil}
               onWhatsApp={handleWhatsApp}
+              busyProductId={pendingProductId}
               imageBaseUrl={imageBaseUrl}
             />
           </div>
         )}
       </main>
+      <WhatsAppFeedbackCard feedback={whatsAppFeedback} onClose={() => emitFeedback(null)} />
     </div>
   );
 }

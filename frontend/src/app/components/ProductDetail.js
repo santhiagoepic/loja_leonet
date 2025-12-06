@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { MessageCircle, Star, Loader2 } from "lucide-react";
 import axios from "axios";
 import AvaliacaoModal from "./AvaliacaoModal";
 import { apiUrl } from "../../lib/api";
 import { buildImageUrl } from "../lib/images";
+import { contactStoreViaWhatsApp, buildWarningFeedback } from "../lib/whatsapp";
+import { useAuth } from "../providers/auth-context";
+import WhatsAppFeedbackCard from "./WhatsAppFeedbackCard";
 
 const formatCurrency = (value) => {
   if (value === undefined || value === null || value === "") return "R$ 0,00";
@@ -19,6 +23,8 @@ const formatCurrency = (value) => {
 };
 
 export default function ProductDetail({ slug }) {
+  const router = useRouter();
+  const { user, request, loading: authLoading } = useAuth();
   const [produto, setProduto] = useState(null);
   const [avaliacoes, setAvaliacoes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +42,16 @@ export default function ProductDetail({ slug }) {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [loadingAvaliacao, setLoadingAvaliacao] = useState(false);
+  const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
+  const [whatsAppFeedback, setWhatsAppFeedback] = useState(null);
+
+  const emitFeedback = (payload) => {
+    if (!payload) {
+      setWhatsAppFeedback(null);
+      return;
+    }
+    setWhatsAppFeedback({ ...payload, id: Date.now() });
+  };
 
   useEffect(() => {
     async function fetchProduto() {
@@ -68,16 +84,37 @@ export default function ProductDetail({ slug }) {
     fetchProduto();
   }, [slug]);
 
-  const handleWhatsApp = () => {
+  const redirectToLogin = () => {
+    const target = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/";
+    router.push(`/auth/login?redirect=${encodeURIComponent(target)}`);
+  };
+
+  const handleWhatsApp = async () => {
     if (!produto) return;
-    const phoneNumber = "5563984107523";
-    const nomeProduto = produto.nome || "Produto";
-    const descricao = produto.descricao || "Sem descrição disponível";
-    const preco = produto.preco ? formatCurrency(produto.preco) : "Preço sob consulta";
-    const imageUrl = produto.imagem ? buildImageUrl(produto.imagem) : null;
-    const message = `🛍️ *INTERESSE NO PRODUTO* 🛍️\n\n*Produto:* ${nomeProduto}\n*Descrição:* ${descricao}\n*Preço:* ${preco}\n${imageUrl ? `*Foto:* ${imageUrl}\n` : ""}\nOlá! Gostaria de mais informações sobre este produto.`;
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, "_blank", "noopener,noreferrer");
+
+    if (!user) {
+      if (authLoading) {
+        return;
+      }
+      redirectToLogin();
+      return;
+    }
+
+    if (!user.phone_number) {
+      emitFeedback(buildWarningFeedback("Atualize seu telefone em Minha Conta para continuar."));
+      router.push("/conta");
+      return;
+    }
+
+    setSendingWhatsApp(true);
+    try {
+      const result = await contactStoreViaWhatsApp(produto, { requestFn: request });
+      emitFeedback(result.feedback);
+    } catch (err) {
+      emitFeedback({ status: "error", title: "Não conseguimos enviar", message: err.message || "Tente novamente em instantes." });
+    } finally {
+      setSendingWhatsApp(false);
+    }
   };
 
   const handleFormChange = (field, value) => {
@@ -175,8 +212,12 @@ export default function ProductDetail({ slug }) {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
-            <button onClick={handleWhatsApp} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-green-600 px-6 py-4 text-lg font-semibold text-white shadow-lg transition hover:bg-green-700">
-              <MessageCircle className="h-5 w-5" /> Falar no WhatsApp
+            <button
+              onClick={handleWhatsApp}
+              disabled={sendingWhatsApp}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-green-600 px-6 py-4 text-lg font-semibold text-white shadow-lg transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-green-300"
+            >
+              <MessageCircle className="h-5 w-5" /> {sendingWhatsApp ? 'Enviando...' : 'Comprar no WhatsApp'}
             </button>
             <button onClick={() => setAvaliacaoModalOpen(true)} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-200 px-6 py-4 text-lg font-semibold text-gray-900 transition hover:border-orange-400 hover:text-orange-500">
               <Star className="h-5 w-5 text-orange-400" /> Avaliar produto
@@ -259,6 +300,7 @@ export default function ProductDetail({ slug }) {
           submitting={submitting}
         />
       )}
+      <WhatsAppFeedbackCard feedback={whatsAppFeedback} onClose={() => emitFeedback(null)} />
     </div>
     </div>
   );

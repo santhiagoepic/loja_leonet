@@ -1,8 +1,12 @@
+import logging
+from collections import defaultdict
+from urllib.parse import urljoin
+
 from rest_framework import viewsets, generics, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from collections import defaultdict
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
@@ -16,6 +20,7 @@ from .models import (
     Avaliacao,
     PedidoIntencao,
     AllowedRating,
+    WhatsAppOrder,
 )
 from .serializers import (
     CategoriaSerializer,
@@ -27,13 +32,26 @@ from .serializers import (
     SuporteSerializer,
     PedidoIntencaoSerializer,
     PedidoIntencaoAdminSerializer,
+    WhatsAppInquirySerializer,
+    WhatsAppOrderRequestSerializer,
+    WhatsAppOrderSerializer,
 )
+from .waha import WhatsAppGateway, WhatsAppGatewayError
+
+logger = logging.getLogger(__name__)
 
 
 # ViewSet para Produto (com CRUD completo + ação de destaque)
 class ProdutoViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Produto.objects.all()
     serializer_class = ProdutoSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        termo = (self.request.query_params.get('search') or '').strip()
+        if termo:
+            queryset = queryset.filter(nome__icontains=termo)
+        return queryset
 
     def get_permissions(self):
         # leitura liberada ao público; demais ações (se declaradas futuramente) apenas para admin
@@ -350,6 +368,172 @@ class SuporteAPIView(APIView):
         suporte = serializer.save(usuario=request.user)
         output_serializer = SuporteSerializer(suporte)
         return Response(output_serializer.data, status=status.HTTP_201_CREATED)
+
+
+class WhatsAppRelayView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = WhatsAppInquirySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        message = self._build_message(data)
+
+        try:
+            gateway = WhatsAppGateway()
+            gateway.send_product_message(
+                chat_phone=data['customer_phone'],
+                text=message,
+                image_url=data.get('image_url'),
+                filename=data.get('image_name'),
+            )
+        except WhatsAppGatewayError as exc:
+            logger.exception('WAHA indisponível: %s', exc)
+            return Response({'detail': str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        return Response({'detail': 'Mensagem enviada com sucesso.'}, status=status.HTTP_202_ACCEPTED)
+
+    @staticmethod
+    def _build_message(data):
+        linhas = [
+            '🛍️ *INTERESSE NO PRODUTO* 🛍️',
+            '',
+            f"*Produto:* {data['product_name']}",
+        ]
+        descricao = data.get('product_description')
+        if descricao:
+            linhas.append(f"*Descrição:* {descricao}")
+        preco = data.get('product_price')
+        if preco:
+            linhas.append(f"*Preço:* {preco}")
+        link = data.get('product_url')
+        if link:
+            linhas.append(f"*Link:* {link}")
+        linhas.extend([
+            '',
+            'Cliente interessado através do site. Favor prosseguir com o atendimento.',
+        ])
+        extra = data.get('extra_notes')
+        if extra:
+            linhas.extend(['', extra])
+        return '\n'.join(linhas)
+
+
+class WhatsAppOrderView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = WhatsAppOrderRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        produto = serializer.validated_data['produto']
+
+        phone = self._resolve_customer_phone(request.user)
+        if not phone:
+            return Response(
+                {'detail': 'Atualize seu telefone na área "Minha Conta" para continuar.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        product_url = self._build_product_url(request, produto)
+        image_url = self._resolve_image_url(produto)
+        message = self._build_customer_message(request.user, produto, product_url)
+
+        order = WhatsAppOrder.objects.create(
+            usuario=request.user,
+            produto=produto,
+            customer_phone=phone,
+            product_name_snapshot=produto.nome,
+            product_price_snapshot=produto.preco,
+            product_url=product_url,
+            image_url=image_url or '',
+            message_preview=message,
+        )
+
+        try:
+            gateway = WhatsAppGateway()
+            payload = gateway.send_product_message(
+                chat_phone=phone,
+                text=message,
+                image_url=image_url or None,
+                filename=self._image_filename(image_url),
+            ) or {}
+            order.mark_sent(payload=payload, message_preview=message)
+            response_status = status.HTTP_202_ACCEPTED
+            detail = 'Enviamos os detalhes deste produto no seu WhatsApp.'
+            feedback_status = 'success'
+            feedback_title = 'Pedido enviado'
+        except WhatsAppGatewayError as exc:
+            order.mark_failed(str(exc))
+            response_status = status.HTTP_503_SERVICE_UNAVAILABLE
+            detail = 'Não foi possível disparar a mensagem agora. Tente novamente em instantes.'
+            feedback_status = 'error'
+            feedback_title = 'Ops, algo aconteceu'
+
+        data = {
+            'order': WhatsAppOrderSerializer(order).data,
+            'feedback': {
+                'status': feedback_status,
+                'title': feedback_title,
+                'message': detail,
+            },
+        }
+        return Response(data, status=response_status)
+
+    @staticmethod
+    def _resolve_customer_phone(user):
+        profile = getattr(user, 'customer_profile', None)
+        if not profile:
+            return None
+        digits = ''.join(filter(str.isdigit, profile.phone_number or ''))
+        if len(digits) < 10:
+            return None
+        return digits
+
+    @staticmethod
+    def _build_product_url(request, produto):
+        base = getattr(settings, 'FRONTEND_BASE_URL', '') or request.build_absolute_uri('/')
+        base = base.rstrip('/') + '/'
+        path = f"produto/{produto.id}/"
+        return urljoin(base, path)
+
+    @staticmethod
+    def _resolve_image_url(produto):
+        try:
+            return produto.imagem.url
+        except AttributeError:
+            return ''
+
+    @staticmethod
+    def _image_filename(image_url):
+        if not image_url:
+            return None
+        return image_url.rstrip('/').split('/')[-1] or 'produto.jpg'
+
+    @staticmethod
+    def _build_customer_message(user, produto, product_url):
+        customer_name = getattr(user, 'customer_profile', None)
+        display_name = None
+        if customer_name and customer_name.full_name:
+            display_name = customer_name.full_name
+        if not display_name:
+            display_name = user.get_full_name() or user.email or user.username
+        linhas = [
+            '🛒 *PEDIDO RECEBIDO*',
+            '',
+            f'*Cliente:* {display_name}',
+            f'*Produto:* {produto.nome}',
+        ]
+        if produto.descricao:
+            linhas.append(f'*Descrição:* {produto.descricao[:200]}')
+        if produto.preco is not None:
+            linhas.append(f"*Preço no site:* R$ {produto.preco:.2f}")
+        linhas.extend([
+            f'*Link:* {product_url}',
+            '',
+            'Nosso atendimento já recebeu seu interesse e seguirá com os próximos passos pelo próprio WhatsApp.',
+            'Se esta mensagem chegou por engano, ignore-a.',
+        ])
+        return '\n'.join(linhas)
 
 
 class PedidoIntencaoViewSet(viewsets.ModelViewSet):
