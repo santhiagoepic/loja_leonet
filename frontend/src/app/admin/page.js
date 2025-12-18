@@ -14,6 +14,7 @@ const ADMIN_SECTIONS = [
   { href: "/admin/allowed-ratings", label: "Permissões de avaliação", description: "Controle de quem pode avaliar produtos" },
   { href: "/admin/clientes", label: "Clientes", description: "Perfis verificados" },
   { href: "/admin/intencoes", label: "Intenções de compra", description: "Pedidos e funil de vendas" },
+  { href: "/admin/suporte", label: "Suporte", description: "Chamados e respostas" },
 ];
 
 const DEFAULT_CUSTOMER_STATS = Object.freeze({ total: 0, verified: 0, pending_verification: 0 });
@@ -49,7 +50,7 @@ export default function AdminDashboard() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-500">Administração</p>
-          <h1 className="mt-2 text-3xl font-bold text-gray-900">Painel da Loja Leonet</h1>
+          <h1 className="mt-2 text-3xl font-bold text-gray-900">Painel da Loja Leoneth</h1>
           <p className="text-sm text-gray-500">Atualizado em {lastGenerated}</p>
         </div>
         <div className="flex flex-col gap-2 items-start">

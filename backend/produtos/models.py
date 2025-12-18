@@ -243,6 +243,11 @@ class AllowedRating(models.Model):
 
 #Cria um banco de dados do suporte
 class Suporte(models.Model):
+    class Status(models.TextChoices):
+        ABERTO = 'aberto', 'Aberto'
+        EM_ANDAMENTO = 'em_andamento', 'Em andamento'
+        ENCERRADO = 'encerrado', 'Encerrado'
+
     mensagem = models.TextField()
     produto = models.ForeignKey(
         'Produto',
@@ -251,10 +256,25 @@ class Suporte(models.Model):
         null=True,
         blank=True,
     )
+    produto_nome = models.CharField(max_length=150, blank=True)
     tipo_suporte = models.CharField(max_length=100)
-    contato = models.CharField(max_length=100)
-    telefone = models.CharField(max_length=100)
-    email = models.EmailField(max_length=100)
+    contato = models.CharField(max_length=100, blank=True, default='')
+    telefone = models.CharField(max_length=100, blank=True, default='')
+    email = models.EmailField(max_length=100, blank=True, default='')
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.ABERTO,
+    )
+    resposta = models.TextField(blank=True)
+    respondido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='respostas_suporte',
+        null=True,
+        blank=True,
+    )
+    respondido_em = models.DateTimeField(null=True, blank=True)
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -263,9 +283,42 @@ class Suporte(models.Model):
         blank=True,
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.contato} - {self.tipo_suporte}"
+        return f"{self.contato or self.email or 'Usuário'} - {self.tipo_suporte}"
+
+
+class SuporteMensagem(models.Model):
+    class Autor(models.TextChoices):
+        CLIENTE = 'cliente', 'Cliente'
+        ADMIN = 'admin', 'Admin'
+
+    suporte = models.ForeignKey(
+        Suporte,
+        on_delete=models.CASCADE,
+        related_name='mensagens',
+    )
+    autor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    tipo_autor = models.CharField(
+        max_length=20,
+        choices=Autor.choices,
+        default=Autor.CLIENTE,
+    )
+    texto = models.TextField()
+    imagem = CloudinaryField('image', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.tipo_autor} - {self.suporte_id}"

@@ -8,7 +8,8 @@ import axios from "axios";
 import AvaliacaoModal from "./AvaliacaoModal";
 import { apiUrl } from "../../lib/api";
 import { buildImageUrl } from "../lib/images";
-import { contactStoreViaWhatsApp, buildWarningFeedback } from "../lib/whatsapp";
+import { contactStoreViaWhatsApp, buildWarningFeedback, openWhatsApp } from "../lib/whatsapp";
+import { recordWhatsAppView } from "../lib/view-history";
 import { useAuth } from "../providers/auth-context";
 import WhatsAppFeedbackCard from "./WhatsAppFeedbackCard";
 
@@ -106,10 +107,12 @@ export default function ProductDetail({ slug }) {
       return;
     }
 
+    recordWhatsAppView(produto);
     setSendingWhatsApp(true);
     try {
       const result = await contactStoreViaWhatsApp(produto, { requestFn: request });
       emitFeedback(result.feedback);
+      openWhatsApp(produto);
     } catch (err) {
       emitFeedback({ status: "error", title: "Não conseguimos enviar", message: err.message || "Tente novamente em instantes." });
     } finally {

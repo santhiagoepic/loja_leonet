@@ -1,6 +1,6 @@
-# Loja Leonet – Lógica do Sistema e Casos de Uso
+# Loja Leoneth – Lógica do Sistema e Casos de Uso
 
-Este documento descreve como a plataforma Loja Leonet é estruturada, como funcionam seus fluxos críticos e quais casos de uso cada módulo cobre. Ele consolida o conhecimento do backend Django REST (`backend/`) e do frontend Next.js (`frontend/`).
+Este documento descreve como a plataforma Loja Leoneth é estruturada, como funcionam seus fluxos críticos e quais casos de uso cada módulo cobre. Ele consolida o conhecimento do backend Django REST (`backend/`) e do frontend Next.js (`frontend/`).
 
 ## 1. Arquitetura em Alto Nível
 

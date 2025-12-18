@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { apiUrl } from "../../lib/api";
 import useProfileForm from "./useProfileForm";
 import { useAuth } from "../providers/auth-context";
+import { buildImageUrl } from "../lib/images";
+import { loadViewHistory } from "../lib/view-history";
 
 const formatDate = (isoString) => {
   if (!isoString) return "-";
@@ -60,12 +63,19 @@ export default function AccountPage() {
   const [pedidosError, setPedidosError] = useState(null);
   const [pedidosActionMessage, setPedidosActionMessage] = useState(null);
   const [cancelingId, setCancelingId] = useState(null);
+  const [viewHistory, setViewHistory] = useState([]);
+  const [showAllViews, setShowAllViews] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
       router.replace("/auth/login?redirect=/conta");
     }
   }, [loading, user, router]);
+
+  useEffect(() => {
+    const stored = loadViewHistory();
+    setViewHistory(stored);
+  }, []);
 
   useEffect(() => {
     if (!tokens?.access) return;
@@ -236,11 +246,11 @@ export default function AccountPage() {
             <div className="rounded-2xl border border-gray-100 bg-white p-6">
               <p className="text-sm font-semibold text-gray-500">Desde</p>
               <p className="mt-2 text-2xl font-bold text-gray-900">{profile.criadoEm}</p>
-              <p className="mt-2 text-sm text-gray-600">Obrigado por fazer parte da Leonet.</p>
+              <p className="mt-2 text-sm text-gray-600">Obrigado por fazer parte da Leoneth.</p>
             </div>
           </div>
 
-          <div className="mt-10 rounded-2xl border border-gray-100 bg-white p-6">
+          <div id="historico-pedidos" className="mt-10 rounded-2xl border border-gray-100 bg-white p-6">
             <h2 className="text-xl font-semibold text-gray-900">Dados cadastrais</h2>
             <dl className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
@@ -409,38 +419,55 @@ export default function AccountPage() {
         </section>
 
         <aside className="w-full space-y-6 lg:w-1/3">
-          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg">
+          <div id="historico-visualizacoes" className="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Pedidos recentes</h3>
-                <p className="text-sm text-gray-500">Acompanhe suas intenções de compra</p>
+                <h3 className="text-lg font-semibold text-gray-900">Visualizações no WhatsApp</h3>
+                <p className="text-sm text-gray-500">Você visualizou estes produtos. O que achou?</p>
               </div>
-              <Link className="text-sm font-semibold text-orange-500" href="/checkout">
-                + Novo pedido
-              </Link>
+              <span className="text-xs font-semibold text-gray-500">{viewHistory.length}</span>
             </div>
+
             <div className="mt-4 space-y-3">
-              {pedidosLoading && <p className="text-sm text-gray-500">Carregando...</p>}
-              {pedidosError && <p className="text-sm text-red-600">{pedidosError}</p>}
-              {!pedidosLoading && !pedidosError && pedidos.length === 0 && (
-                <p className="text-sm text-gray-500">
-                  Você ainda não registrou pedidos. Use o checkout para iniciar uma intenção e nossa equipe entrará em contato.
-                </p>
+              {viewHistory.length === 0 && (
+                <p className="text-sm text-gray-500">Nenhuma visualização registrada ainda.</p>
               )}
+
               <ul className="divide-y divide-gray-100">
-                {pedidos.slice(0, 5).map((pedido) => {
-                  const meta = getStatusMeta(pedido.status);
+                {viewHistory.slice(0, 5).map((item) => {
+                  const imageUrl = item.image ? buildImageUrl(item.image) : null;
+                  const href = `/produto/${item.slug || item.id}`;
                   return (
-                    <li key={pedido.id} className="py-3 text-sm">
-                      <p className="font-semibold text-gray-900">#{pedido.id} · {pedido.produto?.nome || "Produto"}</p>
-                      <p className="text-xs text-gray-500">{formatDate(pedido.criado_em)}</p>
-                      <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${meta.pill}`}>
-                        {meta.label}
-                      </span>
+                    <li key={`${item.id}-${item.viewedAt}`} className="py-3 text-sm">
+                      <Link href={href} className="flex items-center gap-3 rounded-lg p-2 transition hover:bg-orange-50">
+                        <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-orange-100">
+                          {imageUrl ? (
+                            <Image src={imageUrl} alt={item.name || "Produto"} width={48} height={48} className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-xs text-orange-500">Sem foto</div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900">Você visualizou {item.name || "este produto"}</p>
+                          <p className="text-xs text-gray-500">Clique para rever os detalhes.</p>
+                        </div>
+                      </Link>
                     </li>
                   );
                 })}
               </ul>
+
+              {viewHistory.length > 5 && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllViews(true)}
+                    className="w-full rounded-lg border border-orange-200 px-4 py-2 text-sm font-semibold text-orange-600 transition hover:bg-orange-50"
+                  >
+                    Ver mais
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg">
@@ -470,7 +497,7 @@ export default function AccountPage() {
           <div className="rounded-2xl border border-gray-100 bg-orange-500/10 p-6 text-gray-900 shadow-lg">
             <h3 className="text-lg font-semibold">Avaliações com foto</h3>
             <p className="mt-2 text-sm text-gray-600">
-              Compartilhe sua experiência e ganhe destaque na vitrine de clientes Leonet.
+              Compartilhe sua experiência e ganhe destaque na vitrine de clientes Leoneth.
             </p>
             <Link
               href="/suporte"
@@ -481,6 +508,56 @@ export default function AccountPage() {
           </div>
         </aside>
       </div>
+
+      {/* Modal de visualizações completas */}
+      {showAllViews && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-8">
+          <div className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Todas as visualizações no WhatsApp</h3>
+                <p className="text-sm text-gray-500">Clique em qualquer item para rever os detalhes do produto.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAllViews(false)}
+                className="rounded-full border border-gray-200 px-3 py-1 text-sm font-semibold text-gray-600 transition hover:border-gray-300"
+              >
+                Fechar
+              </button>
+            </div>
+
+            <div className="mt-4 max-h-[60vh] overflow-y-auto pr-1">
+              {viewHistory.length === 0 && (
+                <p className="text-sm text-gray-500">Nenhuma visualização registrada.</p>
+              )}
+              <ul className="divide-y divide-gray-100">
+                {viewHistory.map((item) => {
+                  const imageUrl = item.image ? buildImageUrl(item.image) : null;
+                  const href = `/produto/${item.slug || item.id}`;
+                  return (
+                    <li key={`${item.id}-${item.viewedAt}`} className="py-3 text-sm">
+                      <Link href={href} className="flex items-center gap-3 rounded-lg p-2 transition hover:bg-orange-50">
+                        <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-orange-100">
+                          {imageUrl ? (
+                            <Image src={imageUrl} alt={item.name || "Produto"} width={48} height={48} className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-xs text-orange-500">Sem foto</div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900">Você visualizou {item.name || "este produto"}</p>
+                          <p className="text-xs text-gray-500">Clique para rever os detalhes.</p>
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

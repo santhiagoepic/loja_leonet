@@ -1,4 +1,4 @@
-# 🛍️ Loja Leonet
+# 🛍️ Loja Leoneth
 
 Projeto **fullstack** para uma loja virtual, utilizando **Django** no backend e **Next.js** no frontend. A plataforma oferece catálogo completo, intenções de compra, central de suporte autenticada e painel administrativo.
 
@@ -154,7 +154,7 @@ O frontend rodará em: <http://localhost:3000/>
 
 ### 📄 Recursos adicionais
 
-- Documento de apresentação para a faculdade: veja `docs/apresentacao-loja-leonet.md` (contém roteiro de pitch e destaques visuais).
+- Documento de apresentação para a faculdade: veja `docs/apresentacao-loja-leoneth.md` (contém roteiro de pitch e destaques visuais).
 
 ### 👨‍💻 Desenvolvido por
 

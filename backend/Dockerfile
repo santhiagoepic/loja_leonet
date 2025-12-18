@@ -6,10 +6,10 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-COPY backend/requirements.txt ./requirements.txt
+COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY backend /app
+COPY . /app
 RUN cp /app/entrypoint.sh /entrypoint.sh \
 	&& sed -i 's/\r$//' /entrypoint.sh \
 	&& chmod +x /entrypoint.sh

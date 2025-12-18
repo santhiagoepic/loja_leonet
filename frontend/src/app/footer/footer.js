@@ -16,7 +16,7 @@ export function Footer() {
     <footer className="w-full bg-gradient-to-b from-slate-900 via-slate-950 to-black text-white">
       <div className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-14 md:grid md:grid-cols-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-emerald-300">Leonete Modas</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-emerald-300">Leoneth Modas</p>
           <h2 className="mt-3 text-2xl font-semibold">Moda com atitude</h2>
           <p className="mt-4 text-sm text-slate-300">
             Peças selecionadas, atendimento humanizado e uma curadoria feita para quem gosta de se vestir com estilo em qualquer ocasião.
@@ -70,7 +70,7 @@ export function Footer() {
       </div>
 
       <div className="border-t border-white/10 py-6 text-center text-xs text-slate-400">
-        © {year} Leonete Modas. Todos os direitos reservados.
+        © {year} Leoneth Modas. Todos os direitos reservados.
       </div>
     </footer>
   );

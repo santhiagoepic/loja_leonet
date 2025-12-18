@@ -6,7 +6,8 @@ import { Loader2 } from "lucide-react";
 import CategorySection from "./CategorySection";
 import WhatsAppFeedbackCard from "./WhatsAppFeedbackCard";
 import { apiUrl } from "../../lib/api";
-import { contactStoreViaWhatsApp, buildWarningFeedback } from "../lib/whatsapp";
+import { contactStoreViaWhatsApp, buildWarningFeedback, openWhatsApp } from "../lib/whatsapp";
+import { recordWhatsAppView } from "../lib/view-history";
 import { useAuth } from "../providers/auth-context";
 
 export default function CategoryPageTemplate({ endpoint, category, title }) {
@@ -68,10 +69,12 @@ export default function CategoryPageTemplate({ endpoint, category, title }) {
       return;
     }
 
+    recordWhatsAppView(produto);
     setPendingProductId(produto.id);
     try {
       const result = await contactStoreViaWhatsApp(produto, { requestFn: request });
       emitFeedback(result.feedback);
+      openWhatsApp(produto);
     } catch (err) {
       emitFeedback({ status: "error", title: "Não conseguimos enviar", message: err.message || "Tente novamente em breve." });
     } finally {

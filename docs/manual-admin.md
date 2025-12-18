@@ -1,6 +1,7 @@
 # Manual Rápido do Sistema - Admin
 
-Este guia é destinado apenas para administradores da Loja Leonet. Aqui você encontra um resumo das principais funções do painel administrativo.
+Este guia é destinado apenas para administradores da Loja Leoneth. Aqui você encontra um resumo das principais funções do painel administrativo.
+
 
 ## Acesso ao Painel
 - Acesse `/admin` e faça login com seu usuário administrador.

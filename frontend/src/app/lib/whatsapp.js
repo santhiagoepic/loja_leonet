@@ -55,3 +55,18 @@ export async function contactStoreViaWhatsApp(product, { requestFn } = {}) {
 export function buildWarningFeedback(message) {
   return normalizeFeedback({ status: 'warning', message }, 'warning');
 }
+
+export function buildWhatsAppUrl(product) {
+  if (!product) return 'https://wa.me/';
+  const direct = product.link_whatsapp || product.whatsapp_link;
+  if (direct) return direct;
+  const name = product.nome || product.name || 'um produto';
+  const text = encodeURIComponent(`Olá, tenho interesse em ${name}.`);
+  return `https://wa.me/?text=${text}`;
+}
+
+export function openWhatsApp(product) {
+  if (typeof window === 'undefined') return;
+  const url = buildWhatsAppUrl(product);
+  window.open(url, '_blank', 'noopener');
+}

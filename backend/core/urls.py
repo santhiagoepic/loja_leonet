@@ -13,6 +13,8 @@ from produtos.views import (
     ProdutosAcessoriosView,
     AvaliacaoAPIView,
     SuporteAPIView,
+    SuporteDetailAPIView,
+    SuporteMensagemAPIView,
     PedidoIntencaoViewSet,
     WhatsAppRelayView,
     WhatsAppOrderView,
@@ -62,7 +64,7 @@ Esta documentação reflete todas as rotas acima e pode ser utilizada como refer
 
 schema_view = get_schema_view(
     openapi.Info(
-        title="Loja Leonet API",
+        title="Loja Leoneth API",
         default_version='v1',
         description=API_DESCRIPTION,
         contact=openapi.Contact(email="contato@lojalonet.com"),
@@ -110,6 +112,8 @@ urlpatterns = [
     path('api/avaliacoes/<int:pk>/', AvaliacaoAPIView.as_view(), name='avaliacoes-detail'),
     #Suporte
     path('api/suporte/', SuporteAPIView.as_view(), name='suporte-api'),
+    path('api/suporte/<int:pk>/', SuporteDetailAPIView.as_view(), name='suporte-detail'),
+    path('api/suporte/<int:pk>/mensagens/', SuporteMensagemAPIView.as_view(), name='suporte-mensagens'),
     path('api/', include('produtos.urls')),
 ]
 

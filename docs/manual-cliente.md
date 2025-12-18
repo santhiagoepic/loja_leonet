@@ -1,9 +1,9 @@
 # Manual Rápido do Sistema - Cliente
 
-Este guia é destinado aos clientes da Loja Leonet. Siga as orientações para navegar e utilizar o sistema de forma simples.
+Este guia é destinado aos clientes da Loja Leoneth. Siga as orientações para navegar e utilizar o sistema de forma simples.
 
 ## Como acessar
-- Entre no site da Loja Leonet.
+- Entre no site da Loja Leoneth.
 - Navegue pelas categorias e produtos disponíveis.
 - Para comprar, clique no produto desejado e siga as instruções para registrar sua intenção de compra.
 - Você pode criar uma conta para acompanhar suas intenções e avaliações.

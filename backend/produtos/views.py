@@ -16,6 +16,8 @@ from urllib.parse import urljoin
 
 from rest_framework import viewsets, generics, permissions, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.conf import settings
@@ -28,6 +30,7 @@ from .models import (
     Banner,
     Contato,
     Suporte,
+    SuporteMensagem,
     TipoAvaliacao,
     Avaliacao,
     PedidoIntencao,
@@ -42,6 +45,8 @@ from .serializers import (
     AvaliacaoSerializer,
     AvaliacaoListSerializer,
     SuporteSerializer,
+    SuporteAdminSerializer,
+    SuporteMensagemSerializer,
     PedidoIntencaoSerializer,
     PedidoIntencaoAdminSerializer,
     WhatsAppInquirySerializer,
@@ -375,11 +380,81 @@ class SuporteAPIView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
-        serializer = SuporteSerializer(data=request.data)
+        serializer = SuporteSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         suporte = serializer.save(usuario=request.user)
         output_serializer = SuporteSerializer(suporte)
         return Response(output_serializer.data, status=status.HTTP_201_CREATED)
+
+
+class SuporteDetailAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _get_object(self, pk, user):
+        suporte = get_object_or_404(Suporte.objects.select_related('usuario', 'produto'), pk=pk)
+        if not user.is_staff and suporte.usuario != user:
+            raise PermissionDenied('Sem permissão para acessar este chamado.')
+        return suporte
+
+    def get(self, request, pk):
+        suporte = self._get_object(pk, request.user)
+        serializer = SuporteSerializer(suporte)
+        return Response(serializer.data)
+
+    def patch(self, request, pk):
+        suporte = self._get_object(pk, request.user)
+        if not request.user.is_staff:
+            return Response({'detail': 'Sem permissão para atualizar este chamado.'}, status=status.HTTP_403_FORBIDDEN)
+        serializer = SuporteAdminSerializer(
+            suporte,
+            data=request.data,
+            partial=True,
+            context={'request': request},
+        )
+        serializer.is_valid(raise_exception=True)
+        suporte = serializer.save()
+        return Response(SuporteSerializer(suporte).data)
+
+
+class SuporteMensagemAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def _get_suporte(self, pk, user):
+        suporte = get_object_or_404(Suporte.objects.select_related('usuario'), pk=pk)
+        if not user.is_staff and suporte.usuario != user:
+            raise PermissionDenied('Sem permissão para acessar este chamado.')
+        return suporte
+
+    def get(self, request, pk):
+        suporte = self._get_suporte(pk, request.user)
+        mensagens = suporte.mensagens.select_related('autor').all()
+        return Response(SuporteMensagemSerializer(mensagens, many=True, context={'request': request}).data)
+
+    def post(self, request, pk):
+        suporte = self._get_suporte(pk, request.user)
+        if not request.user.is_staff and suporte.status == Suporte.Status.ENCERRADO:
+            return Response({'detail': 'Chamado encerrado, não é possível responder.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = SuporteMensagemSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+
+        texto = serializer.validated_data.get('texto')
+        imagem = serializer.validated_data.get('imagem')
+        if not texto and not imagem:
+            return Response({'detail': 'Envie uma mensagem ou imagem.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        mensagem = SuporteMensagem.objects.create(
+            suporte=suporte,
+            autor=request.user,
+            tipo_autor=SuporteMensagem.Autor.ADMIN if request.user.is_staff else SuporteMensagem.Autor.CLIENTE,
+            texto=texto or '',
+            imagem=imagem,
+        )
+        return Response(
+            SuporteMensagemSerializer(mensagem, context={'request': request}).data,
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class WhatsAppRelayView(APIView):

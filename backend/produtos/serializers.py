@@ -2,6 +2,8 @@ import re
 
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from django.utils import timezone
+from cloudinary.utils import cloudinary_url
 from .models import (
     Categoria,
     Produto,
@@ -11,6 +13,7 @@ from .models import (
     Avaliacao,
     TipoAvaliacao,
     Suporte,
+    SuporteMensagem,
     PedidoIntencao,
     AllowedRating,
     UserProfile,
@@ -26,6 +29,24 @@ class CloudinaryImageField(serializers.ImageField):
         if isinstance(data, str):
             return data
         return super().to_internal_value(data)
+
+    def to_representation(self, value):
+        if not value:
+            return None
+
+        # CloudinaryField exposes .url; fallback to explicit url build when only public_id is present
+        try:
+            url = value.url
+            if url:
+                return url
+        except Exception:
+            pass
+
+        if isinstance(value, str):
+            url, _ = cloudinary_url(value, secure=True)
+            return url
+
+        return super().to_representation(value)
 
 
 class UserPublicSerializer(serializers.ModelSerializer):
@@ -132,9 +153,27 @@ class AvaliacaoListSerializer(serializers.ModelSerializer):
             'data', 'nome_completo', 'usuario', 'compra_verificada'
         ]
 
+
+class SuporteMensagemSerializer(serializers.ModelSerializer):
+    autor = UserPublicSerializer(read_only=True)
+    texto = serializers.CharField(required=False, allow_blank=True)
+    imagem = CloudinaryImageField(required=False, allow_null=True)
+
+    class Meta:
+        model = SuporteMensagem
+        fields = (
+            'id',
+            'texto',
+            'imagem',
+            'tipo_autor',
+            'autor',
+            'created_at',
+        )
+        read_only_fields = ('id', 'tipo_autor', 'autor', 'created_at')
+
 class SuporteSerializer(serializers.ModelSerializer):
     usuario = UserPublicSerializer(read_only=True)
-    produto_nome = serializers.CharField(source='produto.nome', read_only=True)
+    produto_nome = serializers.CharField(required=False, allow_blank=True)
     produto_id = serializers.PrimaryKeyRelatedField(
         queryset=Produto.objects.all(),
         source='produto',
@@ -142,6 +181,45 @@ class SuporteSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
+    respondido_por = UserPublicSerializer(read_only=True)
+    mensagens = serializers.SerializerMethodField()
+
+    def get_mensagens(self, obj):
+        mensagens = obj.mensagens.select_related('autor').all()
+        return SuporteMensagemSerializer(mensagens, many=True, context=self.context).data
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+
+        produto = validated_data.get('produto')
+        produto_nome = validated_data.get('produto_nome', '') or ''
+        if produto and not produto_nome:
+            produto_nome = produto.nome
+
+        contato = ''
+        telefone = ''
+        email = ''
+
+        if user and user.is_authenticated:
+            email = user.email or ''
+            contato = getattr(user, 'full_name', '') or getattr(user, 'get_full_name', lambda: '')() or user.username
+            customer_profile = getattr(user, 'customer_profile', None)
+            if customer_profile:
+                contato = customer_profile.full_name or contato
+                telefone = customer_profile.phone_number or ''
+
+        validated_data.update(
+            {
+                'usuario': user,
+                'contato': contato,
+                'telefone': telefone,
+                'email': email,
+                'produto_nome': produto_nome,
+            }
+        )
+
+        return super().create(validated_data)
 
     class Meta:
         model = Suporte
@@ -155,9 +233,98 @@ class SuporteSerializer(serializers.ModelSerializer):
             'produto_nome',
             'produto_id',
             'usuario',
+            'status',
+            'resposta',
+            'respondido_por',
+            'respondido_em',
+            'mensagens',
             'created_at',
+            'updated_at',
         ]
-        read_only_fields = ('id', 'produto_nome', 'usuario', 'created_at')
+        read_only_fields = (
+            'id',
+            'contato',
+            'telefone',
+            'email',
+            'usuario',
+            'status',
+            'resposta',
+            'respondido_por',
+            'respondido_em',
+            'mensagens',
+            'created_at',
+            'updated_at',
+        )
+
+
+class SuporteAdminSerializer(serializers.ModelSerializer):
+    usuario = UserPublicSerializer(read_only=True)
+    produto_nome = serializers.CharField(required=False, allow_blank=True)
+    produto_id = serializers.PrimaryKeyRelatedField(
+        queryset=Produto.objects.all(),
+        source='produto',
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
+    respondido_por = UserPublicSerializer(read_only=True)
+    mensagens = serializers.SerializerMethodField()
+
+    def get_mensagens(self, obj):
+        mensagens = obj.mensagens.select_related('autor').all()
+        return SuporteMensagemSerializer(mensagens, many=True, context=self.context).data
+
+    class Meta:
+        model = Suporte
+        fields = [
+            'id',
+            'mensagem',
+            'tipo_suporte',
+            'contato',
+            'telefone',
+            'email',
+            'produto_nome',
+            'produto_id',
+            'usuario',
+            'status',
+            'resposta',
+            'respondido_por',
+            'respondido_em',
+            'mensagens',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = (
+            'id',
+            'contato',
+            'telefone',
+            'email',
+            'usuario',
+            'respondido_por',
+            'respondido_em',
+            'mensagens',
+            'created_at',
+            'updated_at',
+        )
+
+    def update(self, instance, validated_data):
+        produto = validated_data.get('produto')
+        produto_nome = validated_data.get('produto_nome', instance.produto_nome)
+        if produto and not produto_nome:
+            produto_nome = produto.nome
+
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
+
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if user and getattr(user, 'is_staff', False):
+            instance.respondido_por = user
+            instance.respondido_em = timezone.now()
+
+        instance.produto_nome = produto_nome
+        instance.save()
+        return instance
 
 
 class PedidoIntencaoSerializer(serializers.ModelSerializer):

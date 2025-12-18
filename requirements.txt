@@ -1,2 +1,2 @@
-# Dependências completas do backend da Loja Leonet
+# Dependências completas do backend da Loja Leoneth
 -r backend/requirements.txt

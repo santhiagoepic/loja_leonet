@@ -96,7 +96,7 @@ function VerifyEmailContent() {
       <div className="mx-auto w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
         <h1 className="text-2xl font-semibold text-gray-900">Confirmar e-mail</h1>
         <p className="mt-2 text-sm text-gray-500">
-          Estamos finalizando a ativação da sua conta Leonet.
+          Estamos finalizando a ativação da sua conta Leoneth.
         </p>
         <div className="mt-8">
           {renderContent()}

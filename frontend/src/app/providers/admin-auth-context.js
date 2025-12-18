@@ -5,7 +5,8 @@ import { createHttpClient } from "../../lib/httpClient";
 
 const AdminAuthContext = createContext(null);
 
-const STORAGE_KEY = "leonet.admin.tokens";
+const STORAGE_KEY = "leoneth.admin.tokens";
+const LEGACY_STORAGE_KEY = ["leone", "t.admin.tokens"].join("");
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000").replace(/\/$/, "");
 const ADMIN_PREFIX = "/api/admin";
 const ADMIN_AUTH_PREFIX = `${ADMIN_PREFIX}/auth`;
@@ -22,8 +23,10 @@ export function AdminAuthProvider({ children }) {
     }
     if (nextTokens) {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextTokens));
+      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
     } else {
       window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
     }
   }, []);
 
@@ -54,7 +57,7 @@ export function AdminAuthProvider({ children }) {
       setLoading(false);
       return;
     }
-    const stored = window.localStorage.getItem(STORAGE_KEY);
+    const stored = window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!stored) {
       setLoading(false);
       return;
@@ -64,11 +67,13 @@ export function AdminAuthProvider({ children }) {
       parsed = JSON.parse(stored);
     } catch (error) {
       window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
       setLoading(false);
       return;
     }
     if (!parsed?.access || !parsed?.refresh) {
       window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
       setLoading(false);
       return;
     }

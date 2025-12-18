@@ -36,7 +36,8 @@ async function searchProducts(term) {
 }
 
 export default async function BuscarPage({ searchParams }) {
-  const query = (searchParams?.q ?? "").toString().trim();
+  const resolvedSearchParams = await searchParams;
+  const query = (resolvedSearchParams?.q ?? "").toString().trim();
   let produtos = [];
   let error = null;
 
@@ -87,7 +88,7 @@ export default async function BuscarPage({ searchParams }) {
 
         {!query && (
           <p className="mt-10 text-center text-base text-gray-500">
-            Use o campo acima para pesquisar por qualquer nome de produto disponível na Leonete Modas.
+            Use o campo acima para pesquisar por qualquer nome de produto disponível na Leoneth Modas.
           </p>
         )}
 
@@ -157,7 +158,7 @@ function ResultCard({ produto }) {
       </div>
       <div className="flex flex-1 flex-col px-5 py-4">
         <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-400">
-          {produto.tipo?.nome ?? produto.tipo_label ?? "Leonete Exclusivo"}
+          {produto.tipo?.nome ?? produto.tipo_label ?? "Leoneth Exclusivo"}
         </p>
         <h3 className="mt-2 text-lg font-semibold text-gray-900 line-clamp-2">{produto.nome}</h3>
         {produto.descricao && (

@@ -1,6 +1,6 @@
 # Orientações para Professores Avaliadores
 
-Bem-vindos à avaliação do sistema Loja Leonet!
+Bem-vindos à avaliação do sistema Loja Leoneth!
 
 Este documento traz orientações para facilitar a análise e navegação dos professores durante a avaliação do sistema.
 

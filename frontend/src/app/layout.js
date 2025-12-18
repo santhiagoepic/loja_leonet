@@ -4,7 +4,7 @@ import { Footer } from "./footer/footer";
 import { AuthProvider } from "./providers/auth-context";
 
 export const metadata = {
-  title: "Loja Leonete Modas",
+  title: "Loja Leoneth Modas",
   description: "Modas",
 };
 

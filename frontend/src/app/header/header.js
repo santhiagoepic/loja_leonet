@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Menu, X, LogIn, LogOut, User, Search } from "lucide-react";
+import { Menu, X, LogIn, User, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../providers/auth-context";
 
@@ -13,19 +13,7 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileSearchQuery, setMobileSearchQuery] = useState("");
   const router = useRouter();
-  const { user, logout } = useAuth();
-  // Detecta se o admin está logado (tokens do admin no localStorage) - evitar hydration error
-  const [isAdminLogged, setIsAdminLogged] = useState(false);
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const adminTokens = window.localStorage.getItem("leonet.admin.tokens");
-        setIsAdminLogged(!!adminTokens && JSON.parse(adminTokens)?.access);
-      } catch {
-        setIsAdminLogged(false);
-      }
-    }
-  }, []);
+  const { user } = useAuth();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -91,8 +79,8 @@ export function Header() {
           {/* Logo aumentada e mais destacada */}
           <div className="relative h-16 w-20 flex-shrink-0 sm:h-24 sm:w-28">
             <Image
-              src="/leonetlogo.png"
-              alt="Leonete Modas"
+              src="/leonethlogo.png"
+              alt="Leoneth Modas"
               fill
               className="object-contain drop-shadow-lg"
               priority
@@ -131,29 +119,21 @@ export function Header() {
               <div className="flex items-center gap-3">
                 <Link
                   href="/conta"
-                  className="flex items-center gap-2 rounded-lg border border-orange-500 px-3 py-1 text-sm font-semibold text-orange-600 transition hover:bg-orange-500 hover:text-white"
+                  aria-label="Minha conta"
+                  title="Minha conta"
+                  className="inline-flex items-center justify-center rounded-full border border-orange-500 p-2 text-orange-600 transition hover:bg-orange-500 hover:text-white"
                 >
-                  <User className="h-4 w-4" />
-                  Minha conta
+                  <User className="h-5 w-5" />
                 </Link>
-                <button
-                  onClick={logout}
-                  className="flex items-center gap-2 rounded-lg border border-orange-500 px-3 py-1 text-sm font-semibold text-orange-600 transition hover:bg-orange-500 hover:text-white"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Sair
-                </button>
               </div>
             ) : (
-              !isAdminLogged && (
-                <Link
-                  href="/auth/login"
-                  className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
-                >
-                  <LogIn className="h-4 w-4" />
-                  Entrar
-                </Link>
-              )
+              <Link
+                href="/auth/login"
+                className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+              >
+                <LogIn className="h-4 w-4" />
+                Entrar
+              </Link>
             )}
           </nav>
 
@@ -229,16 +209,6 @@ export function Header() {
                         <User className="h-4 w-4" />
                         Minha conta
                       </Link>
-                      <button
-                        onClick={() => {
-                          toggleMenu();
-                          logout();
-                        }}
-                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-orange-500 px-4 py-2 font-semibold text-orange-600 transition hover:bg-orange-500 hover:text-white"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        Sair
-                      </button>
                     </>
                   ) : (
                     <Link

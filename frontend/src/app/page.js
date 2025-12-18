@@ -7,7 +7,8 @@ import Banners from "./banners/Banners";
 import CategorySection from "./components/CategorySection";
 import WhatsAppFeedbackCard from "./components/WhatsAppFeedbackCard";
 import { apiUrl } from "../lib/api";
-import { contactStoreViaWhatsApp, buildWarningFeedback } from "./lib/whatsapp";
+import { contactStoreViaWhatsApp, buildWarningFeedback, openWhatsApp } from "./lib/whatsapp";
+import { recordWhatsAppView } from "./lib/view-history";
 import { useAuth } from "./providers/auth-context";
 
 // COMPONENTE PRINCIPAL CORRIGIDO
@@ -95,10 +96,12 @@ export default function Home() {
       return;
     }
 
+    recordWhatsAppView(produto);
     setPendingProductId(produto.id);
     try {
       const result = await contactStoreViaWhatsApp(produto, { requestFn: request });
       emitFeedback(result.feedback);
+      openWhatsApp(produto);
     } catch (err) {
       emitFeedback({ status: "error", title: "Não conseguimos enviar", message: err.message || "Tente novamente em instantes." });
     } finally {

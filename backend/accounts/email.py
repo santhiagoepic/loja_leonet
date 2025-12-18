@@ -44,7 +44,7 @@ def send_verification_email(user, token, attachments: Optional[Sequence[str]] = 
     subject = "Confirme seu e-mail"
     message = (
         "Olá,\n\n"
-        "Obrigado por se cadastrar na Loja Leonet. Clique no link abaixo para confirmar seu e-mail:\n"
+        "Obrigado por se cadastrar na Loja Leoneth. Clique no link abaixo para confirmar seu e-mail:\n"
         f"{verification_url}\n\n"
         "Se você não solicitou este cadastro, ignore este e-mail."
     )
