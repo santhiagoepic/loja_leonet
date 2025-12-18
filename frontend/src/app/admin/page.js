@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
+
 import { useAdminGuard } from "./useAdminGuard";
 
 const ADMIN_SECTIONS = [
@@ -10,7 +11,9 @@ const ADMIN_SECTIONS = [
   { href: "/admin/tipos", label: "Tipos", description: "Tipos de item usados em produtos" },
   { href: "/admin/banners", label: "Banners", description: "Hero e destaques visuais" },
   { href: "/admin/avaliacoes", label: "Avaliações", description: "Moderação e permissões" },
+  { href: "/admin/allowed-ratings", label: "Permissões de avaliação", description: "Controle de quem pode avaliar produtos" },
   { href: "/admin/clientes", label: "Clientes", description: "Perfis verificados" },
+  { href: "/admin/intencoes", label: "Intenções de compra", description: "Pedidos e funil de vendas" },
 ];
 
 const DEFAULT_CUSTOMER_STATS = Object.freeze({ total: 0, verified: 0, pending_verification: 0 });
@@ -49,12 +52,20 @@ export default function AdminDashboard() {
           <h1 className="mt-2 text-3xl font-bold text-gray-900">Painel da Loja Leonet</h1>
           <p className="text-sm text-gray-500">Atualizado em {lastGenerated}</p>
         </div>
-        <button
-          onClick={logout}
-          className="self-start rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-orange-400 hover:text-orange-600"
-        >
-          Encerrar sessão
-        </button>
+        <div className="flex flex-col gap-2 items-start">
+          <button
+            onClick={logout}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-orange-400 hover:text-orange-600"
+          >
+            Encerrar sessão
+          </button>
+          <a
+            href="/auth/login"
+            className="rounded-lg border border-orange-400 px-4 py-2 text-sm font-semibold text-orange-600 transition hover:bg-orange-50"
+          >
+            Logar como cliente de teste
+          </a>
+        </div>
       </div>
 
       <section className="grid gap-4 md:grid-cols-3">

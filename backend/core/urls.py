@@ -110,6 +110,7 @@ urlpatterns = [
     path('api/avaliacoes/<int:pk>/', AvaliacaoAPIView.as_view(), name='avaliacoes-detail'),
     #Suporte
     path('api/suporte/', SuporteAPIView.as_view(), name='suporte-api'),
+    path('api/', include('produtos.urls')),
 ]
 
 if settings.DEBUG:

@@ -1,3 +1,15 @@
+
+# ...existing code...
+
+from rest_framework import generics, permissions
+from .models import PedidoIntencao
+from .serializers import PedidoIntencaoAdminSerializer
+
+class PedidoIntencaoListAdminView(generics.ListAPIView):
+    queryset = PedidoIntencao.objects.select_related('usuario', 'produto', 'confirmado_por').all()
+    serializer_class = PedidoIntencaoAdminSerializer
+    permission_classes = [permissions.IsAdminUser()]
+
 import logging
 from collections import defaultdict
 from urllib.parse import urljoin
@@ -541,10 +553,14 @@ class PedidoIntencaoViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return PedidoIntencao.objects.none()
         qs = super().get_queryset()
         if self.request.user.is_staff:
             return qs
-        return qs.filter(usuario=self.request.user)
+        if self.request.user.is_authenticated:
+            return qs.filter(usuario=self.request.user)
+        return PedidoIntencao.objects.none()
 
     def get_serializer_class(self):
         if self.request.user.is_authenticated and self.request.user.is_staff:

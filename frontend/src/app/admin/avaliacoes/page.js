@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAdminGuard } from "../useAdminGuard";
+import VoltarPainel from "../components/VoltarPainel";
 
 export default function AdminAvaliacoesPage() {
   const { ready, request } = useAdminGuard();
@@ -121,6 +122,7 @@ export default function AdminAvaliacoesPage() {
           </div>
         )}
       </section>
+      <VoltarPainel />
     </div>
   );
 }

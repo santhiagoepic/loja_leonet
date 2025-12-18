@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Menu, X, LogIn, LogOut, User, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +14,18 @@ export function Header() {
   const [mobileSearchQuery, setMobileSearchQuery] = useState("");
   const router = useRouter();
   const { user, logout } = useAuth();
+  // Detecta se o admin está logado (tokens do admin no localStorage) - evitar hydration error
+  const [isAdminLogged, setIsAdminLogged] = useState(false);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const adminTokens = window.localStorage.getItem("leonet.admin.tokens");
+        setIsAdminLogged(!!adminTokens && JSON.parse(adminTokens)?.access);
+      } catch {
+        setIsAdminLogged(false);
+      }
+    }
+  }, []);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -133,13 +145,15 @@ export function Header() {
                 </button>
               </div>
             ) : (
-              <Link
-                href="/auth/login"
-                className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
-              >
-                <LogIn className="h-4 w-4" />
-                Entrar
-              </Link>
+              !isAdminLogged && (
+                <Link
+                  href="/auth/login"
+                  className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+                >
+                  <LogIn className="h-4 w-4" />
+                  Entrar
+                </Link>
+              )
             )}
           </nav>
 

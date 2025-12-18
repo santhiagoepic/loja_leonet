@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAdminGuard } from "../useAdminGuard";
+import VoltarPainel from "../components/VoltarPainel";
 
 const EMPTY_FORM = {
   nome: "",
@@ -117,6 +118,8 @@ export default function AdminProdutosPage() {
           body: formData,
         });
       }
+          <VoltarPainel />
+
       setForm(EMPTY_FORM);
       setEditId(null);
       setImagemArquivo(null);
@@ -374,6 +377,7 @@ export default function AdminProdutosPage() {
           </div>
         )}
       </section>
+      <VoltarPainel />
     </div>
   );
 }

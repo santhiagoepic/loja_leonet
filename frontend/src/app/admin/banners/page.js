@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAdminGuard } from "../useAdminGuard";
+import VoltarPainel from "../components/VoltarPainel";
 
 const EMPTY_FORM = { ativo: true };
 
@@ -231,6 +232,7 @@ export default function AdminBannersPage() {
           </div>
         )}
       </section>
+      <VoltarPainel />
     </div>
   );
 }

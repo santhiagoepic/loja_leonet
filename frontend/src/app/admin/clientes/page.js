@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAdminGuard } from "../useAdminGuard";
+import VoltarPainel from "../components/VoltarPainel";
 
 const EMPTY_FORM = { full_name: "", phone_number: "" };
 
@@ -194,6 +195,7 @@ export default function AdminClientesPage() {
           </div>
         )}
       </section>
+      <VoltarPainel />
     </div>
   );
 }
